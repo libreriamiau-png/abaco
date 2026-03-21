@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👤 Clientes — Libros Bosch</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --negro:  #1a1a1a; --oscuro: #2c2c2c; --medio: #555;
+      --muted:  #888;    --borde:  #ccc;    --fondo: #f5f5f5;
+      --dorado: #c8640a; --dorado-l:#e07010; --verde: #2d6a4f; --rojo: #b33a2a;
+    }
+    body { font-family:Arial,sans-serif; background:var(--fondo); color:var(--negro); line-height:1.5; padding:20px; font-size:15px; }
+
+    .header { background:var(--negro); color:white; padding:20px 32px; margin-bottom:24px; border-bottom:3px solid var(--dorado); }
+    .header h1 { font-size:1.6rem; font-weight:700; margin-bottom:2px; }
+    .header p  { font-size:.9rem; opacity:.7; }
+    .header-nav { display:flex; gap:20px; margin-top:12px; }
+    .header-nav a { color:white; opacity:.6; font-size:.85rem; text-transform:uppercase; text-decoration:none; padding:4px 0; border-bottom:2px solid transparent; transition:all .2s; }
+    .header-nav a:hover, .header-nav a.activo { opacity:1; border-bottom-color:var(--dorado); }
+
+    .card { background:white; padding:24px; border:1px solid var(--borde); margin-bottom:20px; }
+    .card-title { font-size:1rem; font-weight:700; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; gap:8px; border-bottom:2px solid var(--borde); padding-bottom:12px; text-transform:uppercase; }
+    .card-title-left { display:flex; align-items:center; gap:10px; }
+    .badge { background:var(--dorado); color:white; padding:2px 8px; font-size:.72rem; font-weight:700; }
+
+    label { display:block; font-size:.78rem; font-weight:700; margin-bottom:4px; color:var(--oscuro); text-transform:uppercase; }
+    input, select, textarea { width:100%; padding:9px 12px; border:1px solid var(--borde); font-size:.95rem; background:white; color:var(--negro); font-family:Arial,sans-serif; transition:border-color .15s; }
+    input:focus, select:focus, textarea:focus { outline:none; border-color:var(--dorado); box-shadow:0 0 0 2px rgba(200,100,10,.1); }
+    textarea { min-height:120px; resize:vertical; font-size:.9rem; }
+
+    .btn { padding:9px 20px; border:1px solid var(--borde); font-size:.9rem; font-weight:700; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:6px; font-family:Arial,sans-serif; background:white; color:var(--negro); }
+    .btn:hover { background:var(--fondo); }
+    .btn-primary { background:var(--dorado); color:white; border-color:var(--dorado); }
+    .btn-primary:hover { background:var(--dorado-l); }
+    .btn-sm { padding:5px 12px; font-size:.82rem; }
+    .btn-danger { color:var(--rojo); border-color:var(--rojo); }
+    .btn-danger:hover { background:var(--rojo); color:white; }
+
+    .flex { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .mt-3 { margin-top:14px; }
+    .form-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .span2 { grid-column:span 2; }
+    .span3 { grid-column:span 3; }
+    .form-section { grid-column:span 3; display:flex; align-items:center; gap:10px; font-size:.78rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:10px; }
+    .form-section::after { content:''; flex:1; height:1px; background:var(--borde); }
+
+    /* Parser */
+    .parser-wrap { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .parser-input { display:flex; flex-direction:column; gap:10px; }
+    .parser-output { background:var(--fondo); border:1px solid var(--borde); padding:16px; display:none; }
+    .parser-output.visible { display:block; }
+    .parser-output h3 { font-size:.85rem; text-transform:uppercase; color:var(--muted); margin-bottom:12px; font-weight:700; }
+
+    .campo-extraido { display:flex; gap:10px; margin-bottom:10px; align-items:flex-start; }
+    .campo-extraido label { min-width:100px; padding-top:10px; font-size:.75rem; }
+    .campo-extraido input { flex:1; }
+    .campo-extraido .origen {
+      font-size:.7rem; color:var(--muted); padding-top:12px; white-space:nowrap;
+    }
+
+    .origen-abe  { color:#1a6b3c; font-weight:700; }
+    .origen-todo { color:#1a4b8c; font-weight:700; }
+    .origen-web  { color:#8c3a1a; font-weight:700; }
+    .origen-manual { color:var(--muted); }
+
+    .fuente-detectada {
+      display:inline-block; padding:3px 10px; font-size:.75rem; font-weight:700;
+      margin-bottom:14px; text-transform:uppercase; letter-spacing:1px;
+    }
+    .fuente-abe  { background:#e8f5e9; color:#1a6b3c; border:1px solid #1a6b3c44; }
+    .fuente-todo { background:#e8eef8; color:#1a4b8c; border:1px solid #1a4b8c44; }
+    .fuente-web  { background:#fdf0e8; color:#8c3a1a; border:1px solid #8c3a1a44; }
+    .fuente-desconocida { background:#f0f0f0; color:var(--muted); border:1px solid var(--borde); }
+
+    /* Tabla clientes */
+    .table-wrap { overflow-x:auto; border:1px solid var(--borde); }
+    table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    th { text-align:left; padding:10px 12px; background:var(--negro); color:white; font-weight:700; font-size:.78rem; text-transform:uppercase; white-space:nowrap; }
+    td { padding:10px 12px; border-bottom:1px solid #eee; vertical-align:top; }
+    tr:hover td { background:#fff8f0; }
+    tr:last-child td { border-bottom:none; }
+
+    .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+    .search-wrap { position:relative; flex:1; min-width:200px; }
+    .search-wrap input { padding-left:36px; }
+    .search-wrap::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:.9rem; opacity:.5; }
+
+    .estado-carga { text-align:center; padding:40px; color:var(--muted); }
+    .spinner { display:inline-block; width:22px; height:22px; border:3px solid #ddd; border-top-color:var(--dorado); border-radius:50%; animation:spin .7s linear infinite; margin-bottom:10px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; padding:20px; overflow-y:auto; }
+    .modal-overlay.visible { display:flex; align-items:flex-start; justify-content:center; }
+    .modal { background:white; max-width:700px; width:100%; margin:auto; padding:28px; position:relative; border-top:3px solid var(--dorado); }
+    .modal-close { position:absolute; top:14px; right:14px; background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--muted); }
+
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--negro); color:white; padding:10px 22px; font-size:.9rem; font-weight:700; z-index:9999; border-bottom:2px solid var(--dorado); transition:transform .25s; }
+    .toast.visible { transform:translateX(-50%) translateY(0); }
+    .toast.error { border-bottom-color:var(--rojo); }
+
+    @media(max-width:768px) {
+      .parser-wrap { grid-template-columns:1fr; }
+      .form-grid { grid-template-columns:1fr; }
+      .span2,.span3,.form-section { grid-column:span 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>👤 Clientes — Libros Bosch</h1>
+  <p>Gestión de clientes · Sevilla</p>
+  <nav class="header-nav">
+    <a href="INVENTARIO.html">Inventario</a>
+    <a href="#" class="activo">Clientes</a>
+    <a href="#">Ábaco</a>
+    <a href="#">Facturas</a>
+  </nav>
+</div>
+
+<!-- PARSER DE PEDIDOS -->
+<div class="card">
+  <div class="card-title">
+    <div class="card-title-left">
+      📋 Importar pedido
+      <span class="badge">AbeBooks · Todocolección · Web</span>
+    </div>
+  </div>
+
+  <div class="parser-wrap">
+    <!-- INPUT -->
+    <div class="parser-input">
+      <label>Pega aquí el texto del pedido</label>
+      <textarea id="textoPedido" placeholder="Pega el texto del pedido de AbeBooks, Todocolección o tu web..."></textarea>
+      <div class="flex">
+        <button class="btn btn-primary" onclick="parsearPedido()">🔍 Extraer datos</button>
+        <button class="btn btn-sm" onclick="limpiarParser()">🧹 Limpiar</button>
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="parser-output" id="parserOutput">
+      <div id="fuenteDetectada"></div>
+      <h3>Datos extraídos — revisa y corrige</h3>
+      <div class="campo-extraido">
+        <label>Nombre</label>
+        <input type="text" id="pNombre">
+      </div>
+      <div class="campo-extraido">
+        <label>Email</label>
+        <input type="email" id="pEmail">
+      </div>
+      <div class="campo-extraido">
+        <label>Teléfono</label>
+        <input type="tel" id="pTelefono">
+      </div>
+      <div class="campo-extraido">
+        <label>Dirección</label>
+        <input type="text" id="pDireccion">
+      </div>
+      <div class="campo-extraido">
+        <label>CP</label>
+        <input type="text" id="pCP" style="max-width:100px;">
+      </div>
+      <div class="campo-extraido">
+        <label>Ciudad</label>
+        <input type="text" id="pCiudad">
+      </div>
+      <div class="campo-extraido">
+        <label>Provincia</label>
+        <input type="text" id="pProvincia">
+      </div>
+      <div class="campo-extraido">
+        <label>País</label>
+        <input type="text" id="pPais">
+      </div>
+      <div class="flex mt-3">
+        <button class="btn btn-primary" onclick="guardarClienteDesdeParser()">💾 Guardar cliente</button>
+        <button class="btn btn-sm" onclick="abrirFormManual()">✏️ Editar manualmente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORMULARIO MANUAL -->
+<div class="card" id="cardFormManual" style="display:none;">
+  <div class="card-title">
+    <div class="card-title-left">
+      <span id="formClienteTitulo">👤 Nuevo cliente</span>
+      <span class="badge">ficha</span>
+    </div>
+    <button class="btn btn-sm" onclick="cerrarFormManual()">✕ Cancelar</button>
+  </div>
+  <div class="form-grid">
+
+    <div class="form-section">👤 Contacto</div>
+
+    <div class="span2">
+      <label>Nombre completo</label>
+      <input type="text" id="cNombre" placeholder="Apellidos, Nombre">
+    </div>
+    <div>
+      <label>Tipo</label>
+      <select id="cTipo">
+        <option selected>Particular</option>
+        <option>Librería</option>
+        <option>Biblioteca</option>
+        <option>Institución</option>
+        <option>Otro</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Email</label>
+      <input type="email" id="cEmail" placeholder="correo@ejemplo.com">
+    </div>
+    <div>
+      <label>Teléfono</label>
+      <input type="tel" id="cTelefono" placeholder="600 000 000">
+    </div>
+    <div>
+      <label>País</label>
+      <input type="text" id="cPais" placeholder="España">
+    </div>
+
+    <div class="form-section">📍 Dirección</div>
+
+    <div class="span3">
+      <label>Dirección</label>
+      <input type="text" id="cDireccion" placeholder="Calle, número, piso...">
+    </div>
+    <div>
+      <label>Código postal</label>
+      <input type="text" id="cCP" placeholder="18680">
+    </div>
+    <div>
+      <label>Ciudad</label>
+      <input type="text" id="cCiudad" placeholder="Salobreña">
+    </div>
+    <div>
+      <label>Provincia</label>
+      <input type="text" id="cProvincia" placeholder="Granada">
+    </div>
+
+    <div class="form-section">📝 Notas</div>
+    <div class="span3">
+      <textarea id="cNotas" placeholder="Notas internas sobre el cliente..."></textarea>
+    </div>
+  </div>
+  <div class="flex mt-3" style="border-top:1px solid var(--borde);padding-top:16px;margin-top:16px;">
+    <button class="btn btn-primary" id="btnGuardarCliente" onclick="guardarCliente()">💾 Guardar cliente</button>
+    <button class="btn" onclick="cerrarFormManual()">🧹 Limpiar</button>
+  </div>
+</div>
+
+<!-- TABLA CLIENTES -->
+<div class="card">
+  <div class="card-title">
+    <div class="card-title-left">
+      📋 Clientes
+      <span class="badge" id="contadorClientes">0</span>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="abrirFormManual()">➕ Nuevo cliente</button>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" id="busqueda" placeholder="Buscar por nombre, email, ciudad..." oninput="buscar()">
+    </div>
+    <button class="btn btn-sm" onclick="cargarClientes()">↺ Actualizar</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Nº</th><th>Nombre</th><th>Email</th><th>Teléfono</th>
+        <th>Ciudad</th><th>País</th><th>Tipo</th><th></th>
+      </tr></thead>
+      <tbody id="tbodyClientes">
+        <tr><td colspan="8"><div class="estado-carga"><div class="spinner"></div><br>Conectando...</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:.85rem;color:var(--muted);" id="paginacionInfo"></div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn-pag" id="btnAnterior" onclick="cambiarPagina(-1)" disabled style="padding:5px 14px;border:1px solid var(--borde);background:white;font-size:.85rem;cursor:pointer;font-weight:700;">← Anterior</button>
+      <button class="btn-pag" id="btnSiguiente" onclick="cambiarPagina(1)" disabled style="padding:5px 14px;border:1px solid var(--borde);background:white;font-size:.85rem;cursor:pointer;font-weight:700;">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="cerrarModal()">✕</button>
+    <div id="modalContenido"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE ──
+const SUPABASE_URL  = 'https://ohlrldyobyxurnkwheli.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9obHJsZHlvYnl4dXJua3doZWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjEwNTEsImV4cCI6MjA4OTU5NzA1MX0.GcK2rk3gyPf0MeaoMgnQeuUfRMwEgr1SbUw6Md6AWCU';
+const API = `${SUPABASE_URL}/rest/v1`;
+const HEADERS = {
+  'apikey': SUPABASE_ANON,
+  'Authorization': `Bearer ${SUPABASE_ANON}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+let clientes=[], pagina=0, totalClientes=0, editandoId=null, busquedaActual='';
+const POR_PAGINA=50;
+
+async function apiFetch(endpoint, opts={}) {
+  const res=await fetch(`${API}${endpoint}`,{headers:HEADERS,...opts});
+  if(!res.ok) throw new Error(await res.text());
+  const ct=res.headers.get('content-type')||'';
+  if(ct.includes('json')&&res.status!==204) return res.json();
+  return null;
+}
+async function apiConteo(endpoint) {
+  const res=await fetch(`${API}${endpoint}`,{headers:{...HEADERS,'Prefer':'count=exact','Range':'0-0'}});
+  const r=res.headers.get('content-range')||''; const t=r.split('/')[1];
+  return t==='*'?0:parseInt(t)||0;
+}
+
+// ── PARSER ──
+function parsearPedido() {
+  const texto = document.getElementById('textoPedido').value.trim();
+  if (!texto) return toast('Pega primero el texto del pedido', true);
+
+  let datos = {}, fuente = 'desconocida';
+
+  // ── AbeBooks ──
+  if (texto.includes('Fecha del pedido') || texto.includes('E-mail del comprador')) {
+    fuente = 'abe';
+    datos.email    = extraer(texto, /E-mail del comprador:\s*([^\s]+)/i);
+    datos.telefono = extraer(texto, /Tel[eé]fono del cliente:\s*([0-9+\s]+)/i);
+
+    // Dirección de envío: todo lo que hay después de "Dirección de envío:"
+    const mDir = texto.match(/Direcci[oó]n de env[ií]o:\s*([\s\S]+)/i);
+    if (mDir) {
+      const lineas = mDir[1].trim().split(/\s{2,}|\n/).map(l=>l.trim()).filter(Boolean);
+      datos.nombre    = lineas[0]||'';
+      datos.direccion = lineas[1]||'';
+      // CP Ciudad
+      const cpLinea   = lineas.find(l=>/^\d{4,5}\s/.test(l))||'';
+      if (cpLinea) {
+        const mCP=cpLinea.match(/^(\d{4,5})\s+(.+)/);
+        if(mCP){datos.cp=mCP[1];datos.ciudad=mCP[2];}
+      }
+      datos.pais = lineas[lineas.length-1]||'';
+      // En AbeBooks no hay línea de provincia — se calcula desde el CP
+      datos.provincia = provinciaDeCP(datos.cp);
+    }
+
+  // ── Todocolección ──
+  } else if (/^\s*[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]/.test(texto) && !texto.includes('Correo')) {
+    fuente = 'todo';
+    const lineas = texto.trim().split(/\n/).map(l=>l.trim()).filter(Boolean);
+    datos.nombre    = lineas[0]||'';
+    datos.direccion = lineas[1]||'';
+    const cpLinea   = lineas.find(l=>/^\d{4,5}\s/.test(l))||'';
+    if (cpLinea) {
+      const mCP=cpLinea.match(/^(\d{4,5})\s+(.+)/);
+      if(mCP){datos.cp=mCP[1];datos.ciudad=mCP[2];}
+    }
+    // Provincia y país — últimas líneas
+    const resto=lineas.filter(l=>!/^\d{4,5}/.test(l)&&l!==lineas[0]&&l!==lineas[1]);
+    // Última línea puede ser "Granada España" — separar provincia y país
+    const ultimaLinea = resto[resto.length-1]||'';
+    const paisesConocidos = ['España','Francia','Portugal','Alemania','Italia','Reino Unido','Estados Unidos'];
+    let provinciaExtra='', paisExtra='';
+    for (const pais of paisesConocidos) {
+      if (ultimaLinea.endsWith(pais)) {
+        provinciaExtra = ultimaLinea.slice(0, ultimaLinea.length - pais.length).trim();
+        paisExtra = pais;
+        break;
+      }
+    }
+    if (paisExtra) {
+      datos.provincia = provinciaDeCP(datos.cp) || provinciaExtra;
+      datos.pais      = paisExtra;
+    } else if (resto.length>=2) {
+      datos.provincia = provinciaDeCP(datos.cp) || resto[0];
+      datos.pais      = ultimaLinea;
+    } else {
+      datos.provincia = provinciaDeCP(datos.cp);
+      datos.pais      = ultimaLinea||'España';
+    }
+
+  // ── Web propia ──
+  } else if (texto.includes('Correo electrónico') || texto.includes('Teléfono')) {
+    fuente = 'web';
+    datos.email    = extraer(texto, /Correo electr[oó]nico\s*([^\s@]+@[^\s]+)/i);
+    datos.telefono = extraer(texto, /Tel[eé]fono\s*([+0-9\s]{7,15})/i);
+
+    // Quitar las partes de email y teléfono para parsear dirección
+    let bloque = texto
+      .replace(/Correo electr[oó]nico\s*[^\s@]+@[^\s]+/i,'')
+      .replace(/Tel[eé]fono\s*[+0-9\s]{7,15}/i,'')
+      .trim();
+
+    // Separar por mayúsculas seguidas de minúsculas (nombre pegado a dirección)
+    bloque = bloque.replace(/([a-záéíóúüñ])([A-ZÁÉÍÓÚÜÑ])/g,'$1\n$2');
+    const lineas=bloque.split(/\n/).map(l=>l.trim()).filter(Boolean);
+
+    datos.nombre    = lineas[0]||'';
+    datos.direccion = lineas[1]||'';
+    const cpLinea   = lineas.find(l=>/\d{4,5}/.test(l))||'';
+    if (cpLinea) {
+      const mCP=cpLinea.match(/(\d{4,5})\s+(.+)/);
+      if(mCP){datos.cp=mCP[1];datos.ciudad=mCP[2].split('-')[0].trim();}
+    }
+    const resto=lineas.filter(l=>!/\d{4,5}/.test(l)&&l!==lineas[0]&&l!==lineas[1]);
+    if(resto.length>=1) datos.provincia=resto[0];
+  }
+
+  // Limpiar teléfono
+  if (datos.telefono) datos.telefono=datos.telefono.trim().replace(/\s+/g,' ');
+
+  mostrarParser(datos, fuente);
+}
+
+function extraer(texto, regex) {
+  const m=texto.match(regex); return m?m[1].trim():'';
+}
+
+function mostrarParser(d, fuente) {
+  const etiquetas={
+    abe:  {label:'AbeBooks',  cls:'fuente-abe'},
+    todo: {label:'Todocolección', cls:'fuente-todo'},
+    web:  {label:'Web propia', cls:'fuente-web'},
+    desconocida:{label:'Fuente no reconocida',cls:'fuente-desconocida'}
+  };
+  const e=etiquetas[fuente];
+  document.getElementById('fuenteDetectada').innerHTML=
+    `<span class="fuente-detectada ${e.cls}">📦 ${e.label}</span>`;
+
+  const set=(id,v)=>document.getElementById(id).value=v||'';
+  set('pNombre',    d.nombre);
+  set('pEmail',     d.email);
+  set('pTelefono',  d.telefono);
+  set('pDireccion', d.direccion);
+  set('pCP',        d.cp);
+  set('pCiudad',    d.ciudad);
+  set('pProvincia', d.provincia || provinciaDeCP(d.cp));
+  set('pPais',      d.pais||'España');
+
+  document.getElementById('parserOutput').classList.add('visible');
+}
+
+function limpiarParser() {
+  document.getElementById('textoPedido').value='';
+  document.getElementById('parserOutput').classList.remove('visible');
+  ['pNombre','pEmail','pTelefono','pDireccion','pCP','pCiudad','pProvincia','pPais']
+    .forEach(id=>document.getElementById(id).value='');
+}
+
+async function guardarClienteDesdeParser() {
+  const nombre=document.getElementById('pNombre').value.trim();
+  if(!nombre) return toast('El nombre es obligatorio',true);
+
+  const datos={
+    nombre,
+    email:     document.getElementById('pEmail').value.trim()||null,
+    telefono:  document.getElementById('pTelefono').value.trim()||null,
+    direccion: document.getElementById('pDireccion').value.trim()||null,
+    cp:        document.getElementById('pCP').value.trim()||null,
+    ciudad:    document.getElementById('pCiudad').value.trim()||null,
+    provincia: document.getElementById('pProvincia').value.trim()||null,
+    pais:      document.getElementById('pPais').value.trim()||'España',
+    tipo:      'Particular',
+  };
+
+  try {
+    await apiFetch('/clientes',{method:'POST',body:JSON.stringify(datos)});
+    toast('✓ Cliente guardado: '+nombre);
+    limpiarParser();
+    pagina=0; cargarClientes();
+  } catch(e) { toast('Error: '+e.message,true); }
+}
+
+// ── FORM MANUAL ──
+function abrirFormManual() {
+  // Copiar datos del parser si los hay
+  const nombre=document.getElementById('pNombre').value.trim();
+  if(nombre){
+    document.getElementById('cNombre').value    = nombre;
+    document.getElementById('cEmail').value     = document.getElementById('pEmail').value;
+    document.getElementById('cTelefono').value  = document.getElementById('pTelefono').value;
+    document.getElementById('cDireccion').value = document.getElementById('pDireccion').value;
+    document.getElementById('cCP').value        = document.getElementById('pCP').value;
+    document.getElementById('cCiudad').value    = document.getElementById('pCiudad').value;
+    document.getElementById('cProvincia').value = document.getElementById('pProvincia').value;
+    document.getElementById('cPais').value      = document.getElementById('pPais').value||'España';
+  }
+  document.getElementById('cardFormManual').style.display='block';
+  document.getElementById('cardFormManual').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function cerrarFormManual() {
+  document.getElementById('cardFormManual').style.display='none';
+  ['cNombre','cEmail','cTelefono','cDireccion','cCP','cCiudad','cProvincia','cPais','cNotas']
+    .forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cTipo').value='Particular';
+  editandoId=null;
+  document.getElementById('formClienteTitulo').textContent='👤 Nuevo cliente';
+  document.getElementById('btnGuardarCliente').textContent='💾 Guardar cliente';
+}
+
+async function guardarCliente() {
+  const nombre=document.getElementById('cNombre').value.trim();
+  if(!nombre) return toast('El nombre es obligatorio',true);
+  const datos={
+    nombre,
+    email:     document.getElementById('cEmail').value.trim()||null,
+    telefono:  document.getElementById('cTelefono').value.trim()||null,
+    direccion: document.getElementById('cDireccion').value.trim()||null,
+    cp:        document.getElementById('cCP').value.trim()||null,
+    ciudad:    document.getElementById('cCiudad').value.trim()||null,
+    provincia: document.getElementById('cProvincia').value.trim()||null,
+    pais:      document.getElementById('cPais').value.trim()||'España',
+    tipo:      document.getElementById('cTipo').value||'Particular',
+    notas:     document.getElementById('cNotas').value.trim()||null,
+  };
+  try {
+    if(editandoId){
+      await apiFetch(`/clientes?id=eq.${editandoId}`,{method:'PATCH',body:JSON.stringify(datos)});
+      toast('✓ Cliente actualizado');
+    } else {
+      await apiFetch('/clientes',{method:'POST',body:JSON.stringify(datos)});
+      toast('✓ Cliente guardado');
+    }
+    cerrarFormManual(); pagina=0; cargarClientes();
+  } catch(e) { toast('Error: '+e.message,true); }
+}
+
+// ── CARGAR CLIENTES ──
+async function cargarClientes() {
+  mostrarCargando();
+  try {
+    const filtros=busquedaActual
+      ?`or=(nombre.ilike.*${encodeURIComponent(busquedaActual)}*,email.ilike.*${encodeURIComponent(busquedaActual)}*,ciudad.ilike.*${encodeURIComponent(busquedaActual)}*)`
+      :'';
+    totalClientes=await apiConteo(`/clientes?${filtros}`);
+    const desde=pagina*POR_PAGINA;
+    const res=await fetch(`${API}/clientes?${filtros}&order=id.desc&offset=${desde}&limit=${POR_PAGINA}`,{
+      headers:{...HEADERS,'Range':`${desde}-${desde+POR_PAGINA-1}`,'Prefer':'count=exact'}
+    });
+    clientes=await res.json();
+    renderTabla();
+  } catch(e) { mostrarError(e.message); }
+}
+
+function renderTabla() {
+  const tbody=document.getElementById('tbodyClientes');
+  if(!clientes.length){
+    tbody.innerHTML=`<tr><td colspan="8"><div class="estado-carga">Sin clientes todavía</div></td></tr>`;
+    actualizarPaginacion(); return;
+  }
+  tbody.innerHTML=clientes.map((c,i)=>`<tr>
+    <td style="color:var(--muted);font-size:.83rem;">${pagina*POR_PAGINA+i+1}</td>
+    <td style="font-weight:700;">${c.nombre||'—'}</td>
+    <td style="font-size:.85rem;">${c.email?`<a href="mailto:${c.email}" style="color:var(--dorado);">${c.email}</a>`:'—'}</td>
+    <td style="font-size:.85rem;">${c.telefono||'—'}</td>
+    <td style="font-size:.85rem;">${c.ciudad||'—'}</td>
+    <td style="font-size:.83rem;color:var(--muted);">${c.pais||'—'}</td>
+    <td style="font-size:.82rem;">${c.tipo||'—'}</td>
+    <td><div style="display:flex;gap:4px;">
+      <button class="btn btn-sm" onclick="verCliente(${c.id})" title="Ver">👁️</button>
+      <button class="btn btn-sm" onclick="editarCliente(${c.id})" title="Editar">✏️</button>
+      <button class="btn btn-sm btn-danger" onclick="eliminarCliente(${c.id})" title="Eliminar">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+  actualizarPaginacion();
+}
+
+function actualizarPaginacion() {
+  const desde=pagina*POR_PAGINA+1, hasta=Math.min((pagina+1)*POR_PAGINA,totalClientes);
+  document.getElementById('paginacionInfo').textContent=totalClientes>0?`${desde}–${hasta} de ${totalClientes}`:'';
+  document.getElementById('btnAnterior').disabled=pagina===0;
+  document.getElementById('btnSiguiente').disabled=hasta>=totalClientes;
+  document.getElementById('contadorClientes').textContent=totalClientes;
+}
+
+function cambiarPagina(dir){pagina+=dir;cargarClientes();window.scrollTo({top:0,behavior:'smooth'});}
+
+let buscarTimer;
+function buscar(){
+  clearTimeout(buscarTimer);
+  buscarTimer=setTimeout(()=>{busquedaActual=document.getElementById('busqueda').value.trim();pagina=0;cargarClientes();},350);
+}
+
+// ── VER / EDITAR / ELIMINAR ──
+async function verCliente(id) {
+  const [c]=await apiFetch(`/clientes?id=eq.${id}`);
+  if(!c) return;
+  const f=(l,v)=>v?`<tr><td style="padding:7px 12px;border-bottom:1px solid #eee;width:120px;font-size:.78rem;font-weight:700;text-transform:uppercase;color:var(--muted);">${l}</td><td style="padding:7px 12px;border-bottom:1px solid #eee;">${v}</td></tr>`:'';
+  document.getElementById('modalContenido').innerHTML=`
+    <div style="font-size:1.2rem;font-weight:700;margin-bottom:4px;">${c.nombre}</div>
+    <div style="font-size:.82rem;color:var(--muted);text-transform:uppercase;margin-bottom:18px;">${c.tipo||'Particular'}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.9rem;">
+      ${f('Email',c.email?`<a href="mailto:${c.email}" style="color:var(--dorado);">${c.email}</a>`:null)}
+      ${f('Teléfono',c.telefono)}
+      ${f('Dirección',c.direccion)}
+      ${f('CP',c.cp)} ${f('Ciudad',c.ciudad)} ${f('Provincia',c.provincia)} ${f('País',c.pais)}
+      ${f('Notas',c.notas)}
+    </table>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-primary btn-sm" onclick="cerrarModal();editarCliente(${c.id})">✏️ Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="cerrarModal();eliminarCliente(${c.id})">🗑️ Eliminar</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('visible');
+}
+
+async function editarCliente(id) {
+  const [c]=await apiFetch(`/clientes?id=eq.${id}`);
+  if(!c) return;
+  editandoId=id;
+  const set=(i,v)=>{const el=document.getElementById(i);if(el)el.value=v||'';};
+  set('cNombre',c.nombre); set('cEmail',c.email); set('cTelefono',c.telefono);
+  set('cDireccion',c.direccion); set('cCP',c.cp); set('cCiudad',c.ciudad);
+  set('cProvincia',c.provincia); set('cPais',c.pais); set('cNotas',c.notas);
+  document.getElementById('cTipo').value=c.tipo||'Particular';
+  document.getElementById('formClienteTitulo').textContent='✏️ Editar cliente';
+  document.getElementById('btnGuardarCliente').textContent='💾 Guardar cambios';
+  document.getElementById('cardFormManual').style.display='block';
+  document.getElementById('cardFormManual').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function eliminarCliente(id) {
+  if(!confirm('¿Eliminar este cliente?')) return;
+  try { await apiFetch(`/clientes?id=eq.${id}`,{method:'DELETE'}); toast('Cliente eliminado'); cargarClientes(); }
+  catch(e) { toast('Error',true); }
+}
+
+function cerrarModal(){document.getElementById('modalOverlay').classList.remove('visible');}
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)cerrarModal();});
+
+function toast(msg,error=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast'+(error?' error':'');
+  el.classList.add('visible'); setTimeout(()=>el.classList.remove('visible'),3200);
+}
+
+function mostrarCargando(){document.getElementById('tbodyClientes').innerHTML=`<tr><td colspan="8"><div class="estado-carga"><div class="spinner"></div><br>Cargando...</div></td></tr>`;}
+function mostrarError(msg){document.getElementById('tbodyClientes').innerHTML=`<tr><td colspan="8"><div class="estado-carga" style="color:var(--rojo);">⚠️ ${msg}<br><br><button class="btn btn-sm" onclick="cargarClientes()">↺ Reintentar</button></div></td></tr>`;}
+
+const PROVINCIAS_CP = {
+  '01':'Álava','02':'Albacete','03':'Alicante','04':'Almería','05':'Ávila',
+  '06':'Badajoz','07':'Baleares','08':'Barcelona','09':'Burgos','10':'Cáceres',
+  '11':'Cádiz','12':'Castellón','13':'Ciudad Real','14':'Córdoba','15':'A Coruña',
+  '16':'Cuenca','17':'Girona','18':'Granada','19':'Guadalajara','20':'Guipúzcoa',
+  '21':'Huelva','22':'Huesca','23':'Jaén','24':'León','25':'Lleida',
+  '26':'La Rioja','27':'Lugo','28':'Madrid','29':'Málaga','30':'Murcia',
+  '31':'Navarra','32':'Ourense','33':'Asturias','34':'Palencia','35':'Las Palmas',
+  '36':'Pontevedra','37':'Salamanca','38':'Santa Cruz de Tenerife','39':'Cantabria',
+  '40':'Segovia','41':'Sevilla','42':'Soria','43':'Tarragona','44':'Teruel',
+  '45':'Toledo','46':'Valencia','47':'Valladolid','48':'Vizcaya','49':'Zamora',
+  '50':'Zaragoza','51':'Ceuta','52':'Melilla'
+};
+
+function provinciaDeCP(cp) {
+  if (!cp) return '';
+  const prefijo = cp.trim().slice(0,2);
+  return PROVINCIAS_CP[prefijo] || '';
+}
+cargarClientes();
+</script>
+</body>
+</html>
