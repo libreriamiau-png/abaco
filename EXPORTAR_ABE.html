@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>📤 Exportar AbeBooks — Libros Bosch</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --negro:#1a1a1a; --dorado:#c8640a; --dorado-l:#e07010; --verde:#2d6a4f; --rojo:#b33a2a; --borde:#ccc; --fondo:#f5f5f5; --muted:#888; }
+    body { font-family:Arial,Helvetica,sans-serif; background:var(--fondo); color:var(--negro); padding:20px; font-size:15px; line-height:1.5; }
+    .header { background:var(--negro); color:white; padding:20px 32px; margin-bottom:24px; border-bottom:3px solid var(--dorado); }
+    .header h1 { font-size:1.6rem; font-weight:700; margin-bottom:2px; }
+    .header p { font-size:.9rem; opacity:.7; }
+    .header-nav { display:flex; gap:20px; margin-top:12px; }
+    .header-nav a { color:white; opacity:.6; font-size:.85rem; text-transform:uppercase; text-decoration:none; padding:4px 0; border-bottom:2px solid transparent; transition:all .2s; }
+    .header-nav a:hover { opacity:1; border-bottom-color:var(--dorado); }
+    .card { background:white; padding:24px; border:1px solid var(--borde); margin-bottom:20px; }
+    .card-title { font-size:1rem; font-weight:700; margin-bottom:18px; display:flex; align-items:center; gap:8px; border-bottom:2px solid var(--borde); padding-bottom:12px; text-transform:uppercase; }
+    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+    .stat { background:var(--fondo); padding:16px; border:1px solid var(--borde); border-top:3px solid var(--dorado); text-align:center; }
+    .stat .val { font-size:2rem; font-weight:700; }
+    .stat .lab { font-size:.75rem; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+    .btn { padding:10px 24px; border:1px solid var(--borde); font-size:.95rem; font-weight:700; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:8px; font-family:Arial,sans-serif; background:white; color:var(--negro); }
+    .btn:hover { background:var(--fondo); }
+    .btn-primary { background:var(--dorado); color:white; border-color:var(--dorado); }
+    .btn-primary:hover { background:var(--dorado-l); }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+    .progreso-wrap { margin:16px 0; display:none; }
+    .progreso-barra { height:8px; background:#eee; }
+    .progreso-fill { height:100%; background:var(--dorado); transition:width .3s; width:0%; }
+    .progreso-texto { font-size:.85rem; color:var(--muted); margin-top:6px; }
+    .aviso { padding:12px 16px; border-left:3px solid var(--dorado); background:#fff8f0; font-size:.88rem; margin-bottom:16px; }
+    .aviso.verde { border-left-color:var(--verde); background:#e8f5e9; }
+    .aviso.rojo { border-left-color:var(--rojo); background:#fce4e4; }
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--negro); color:white; padding:10px 22px; font-size:.9rem; font-weight:700; z-index:9999; border-bottom:2px solid var(--dorado); transition:transform .25s; }
+    .toast.visible { transform:translateX(-50%) translateY(0); }
+    .toast.error { border-bottom-color:var(--rojo); }
+    .flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .mt { margin-top:16px; }
+    label { display:block; font-size:.78rem; font-weight:700; text-transform:uppercase; color:#555; margin-bottom:4px; }
+    select, input[type=text] { width:100%; padding:8px 12px; border:1px solid var(--borde); font-size:.92rem; font-family:Arial,sans-serif; }
+    select:focus, input:focus { outline:none; border-color:var(--dorado); }
+    .opciones-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📤 Exportar a AbeBooks — Libros Bosch</h1>
+  <p>Genera el CSV listo para subir a AbeBooks/Iberlibro</p>
+  <nav class="header-nav">
+    <a href="INVENTARIO.html">Inventario</a>
+    <a href="CLIENTES.html">Clientes</a>
+    <a href="IMPORTAR.html">Importar</a>
+  </nav>
+</div>
+
+<div class="card">
+  <div class="card-title">⚙️ Opciones de exportación</div>
+  <div class="opciones-grid">
+    <div>
+      <label>Incluir tipos</label>
+      <select id="filtroTipo">
+        <option value="">Todos los tipos</option>
+        <option value="Libro">Solo Libros</option>
+        <option value="Fotografía">Fotografías</option>
+        <option value="Grabado">Grabados</option>
+        <option value="Mapa">Mapas</option>
+        <option value="Manuscrito">Manuscritos</option>
+        <option value="Revista">Revistas</option>
+        <option value="Otro">Otros</option>
+      </select>
+    </div>
+    <div>
+      <label>Solo con precio</label>
+      <select id="filtroConPrecio">
+        <option value="si">Sí — excluir sin precio</option>
+        <option value="no">No — incluir todos</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat">
+      <div class="val" id="stTotal">—</div>
+      <div class="lab">Total en Supabase</div>
+    </div>
+    <div class="stat">
+      <div class="val" id="stExportar">—</div>
+      <div class="lab">A exportar</div>
+    </div>
+    <div class="stat">
+      <div class="val" id="stOmitidos">—</div>
+      <div class="lab">Omitidos (sin precio)</div>
+    </div>
+  </div>
+
+  <div class="progreso-wrap" id="progresoWrap">
+    <div class="progreso-barra"><div class="progreso-fill" id="progresoFill"></div></div>
+    <div class="progreso-texto" id="progresoTexto">Cargando datos...</div>
+  </div>
+
+  <div id="avisoDiv"></div>
+
+  <div class="flex mt">
+    <button class="btn btn-primary" id="btnExportar" onclick="exportar()" disabled>📥 Generar CSV AbeBooks</button>
+    <button class="btn" onclick="previsualizar()">↺ Actualizar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL  = 'https://ohlrldyobyxurnkwheli.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9obHJsZHlvYnl4dXJua3doZWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjEwNTEsImV4cCI6MjA4OTU5NzA1MX0.GcK2rk3gyPf0MeaoMgnQeuUfRMwEgr1SbUw6Md6AWCU';
+const API = SUPABASE_URL + '/rest/v1';
+const HEADERS = { 'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON };
+
+let todosRegistros = [];
+
+// Mapeo encuadernación → AbeBooks
+const ABEBOOKS_MAP = {
+  'Rústica':'Encuadernación de tapa blanda',
+  'Rústica con solapas':'Encuadernación de tapa blanda',
+  'Editorial con solapas':'Encuadernación de tapa blanda',
+  'Cartoné':'Encuadernación de tapa dura',
+  'Tela editorial':'Encuadernación de tapa dura',
+  'Tela ed. estampada':'Encuadernación de tapa dura',
+  'Holandesa':'Encuadernación de tapa dura',
+  'Holandesa puntas':'Encuadernación de tapa dura',
+  'Pasta española':'Encuadernación de tapa dura',
+};
+
+async function cargarTodos() {
+  const LOTE = 1000;
+  let offset = 0, todos = [];
+  document.getElementById('progresoWrap').style.display = 'block';
+  document.getElementById('btnExportar').disabled = true;
+  try {
+    while (true) {
+      document.getElementById('progresoTexto').textContent = 'Cargando registros... ' + todos.length;
+      const res = await fetch(`${API}/inventario?select=stock_no,tipo,autor,titulo,descripcion,lugar,editorial,fecha,precio,isbn,encuadernacion,encuadernacion_abebooks,estado,materia,materia2&order=stock_no.asc&offset=${offset}&limit=${LOTE}`, {
+        headers: { ...HEADERS, 'Range': `${offset}-${offset+LOTE-1}` }
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const lote = await res.json();
+      if (!lote || !lote.length) break;
+      todos = todos.concat(lote);
+      if (lote.length < LOTE) break;
+      offset += LOTE;
+    }
+    todosRegistros = todos;
+    document.getElementById('stTotal').textContent = todos.length.toLocaleString('es-ES');
+    actualizarStats();
+    document.getElementById('btnExportar').disabled = false;
+    toast('✓ ' + todos.length + ' registros cargados');
+  } catch(e) {
+    toast('Error al cargar: ' + e.message, true);
+  } finally {
+    document.getElementById('progresoWrap').style.display = 'none';
+  }
+}
+
+function actualizarStats() {
+  const tipo = document.getElementById('filtroTipo').value;
+  const conPrecio = document.getElementById('filtroConPrecio').value === 'si';
+  let filtrados = todosRegistros;
+  if (tipo) filtrados = filtrados.filter(r => r.tipo === tipo);
+  const sinPrecio = filtrados.filter(r => !r.precio).length;
+  if (conPrecio) filtrados = filtrados.filter(r => r.precio);
+  document.getElementById('stExportar').textContent = filtrados.length.toLocaleString('es-ES');
+  document.getElementById('stOmitidos').textContent = conPrecio ? sinPrecio : 0;
+}
+
+function previsualizar() { actualizarStats(); }
+
+document.getElementById('filtroTipo').addEventListener('change', actualizarStats);
+document.getElementById('filtroConPrecio').addEventListener('change', actualizarStats);
+
+function exportar() {
+  const tipo = document.getElementById('filtroTipo').value;
+  const conPrecio = document.getElementById('filtroConPrecio').value === 'si';
+
+  let registros = todosRegistros;
+  if (tipo) registros = registros.filter(r => r.tipo === tipo);
+  if (conPrecio) registros = registros.filter(r => r.precio);
+
+  if (!registros.length) return toast('No hay registros para exportar', true);
+
+  // Construir CSV en formato AbeBooks (igual que Booksell)
+  // 14 columnas: stock, tipo, autor, titulo, vacío, descripcion, lugar:editorial, fecha, €precio, isbn, encuadernacion_abe, estado, materia, materia2
+  const lineas = registros.map(r => {
+    // Lugar + editorial juntos: "Madrid: Alianza"
+    const lugarEd = r.lugar && r.editorial ? `${r.lugar}: ${r.editorial}`
+                  : r.lugar ? r.lugar
+                  : r.editorial ? r.editorial
+                  : '';
+
+    // Encuadernación AbeBooks: usar el campo directo si existe, si no mapear desde encuadernacion
+    const encAbe = r.encuadernacion_abebooks
+      ? (r.encuadernacion_abebooks === 'Tapa dura' ? 'Encuadernación de tapa dura'
+         : r.encuadernacion_abebooks === 'Tapa blanda' ? 'Encuadernación de tapa blanda'
+         : r.encuadernacion_abebooks)
+      : (ABEBOOKS_MAP[r.encuadernacion] || '');
+
+    // Precio con símbolo €
+    const precio = r.precio != null ? '€' + r.precio : '';
+
+    // Tipo normalizado
+    const tipo = r.tipo || 'Libros';
+    const tipoAbe = tipo === 'Libro' ? 'Libros' : tipo;
+
+    const cols = [
+      r.stock_no || '',
+      tipoAbe,
+      r.autor || '',
+      r.titulo || '',
+      '',
+      r.descripcion || '',
+      lugarEd,
+      r.fecha || '',
+      precio,
+      r.isbn || '',
+      encAbe,
+      r.estado || '',
+      r.materia || '',
+      r.materia2 || ''
+    ];
+
+    return cols.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',');
+  });
+
+  const csv = lineas.join('\r\n');
+
+  // Convertir a Windows-1252
+  descargarCSV(csv, 'catalogo_abebooks_' + fechaHoy() + '.csv');
+  toast('✓ CSV generado — ' + registros.length + ' registros');
+}
+
+function descargarCSV(contenido, nombre) {
+  // Intentar Windows-1252 via TextEncoder si disponible, si no UTF-8
+  try {
+    const encoder = new TextEncoder();
+    // Convertir manualmente caracteres españoles a Windows-1252
+    const w1252 = toWindows1252(contenido);
+    const blob = new Blob([w1252], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    a.click(); URL.revokeObjectURL(url);
+  } catch(e) {
+    // Fallback: descargar como UTF-8
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    a.click(); URL.revokeObjectURL(url);
+  }
+}
+
+function toWindows1252(str) {
+  const buf = new Uint8Array(str.length * 2);
+  let j = 0;
+  const map = {
+    '\u20AC':0x80,'\u201A':0x82,'\u0192':0x83,'\u201E':0x84,'\u2026':0x85,'\u2020':0x86,'\u2021':0x87,'\u02C6':0x88,'\u2030':0x89,
+    '\u0160':0x8A,'\u2039':0x8B,'\u0152':0x8C,'\u017D':0x8E,'\u2018':0x91,'\u2019':0x92,'\u201C':0x93,'\u201D':0x94,'\u2022':0x95,
+    '\u2013':0x96,'\u2014':0x97,'\u02DC':0x98,'\u2122':0x99,'\u0161':0x9A,'\u203A':0x9B,'\u0153':0x9C,'\u017E':0x9E,'\u0178':0x9F,
+    '\u00A0':0xA0,'\u00A1':0xA1,'\u00A2':0xA2,'\u00A3':0xA3,'\u00A4':0xA4,'\u00A5':0xA5,'\u00A6':0xA6,'\u00A7':0xA7,
+    '\u00A8':0xA8,'\u00A9':0xA9,'\u00AA':0xAA,'\u00AB':0xAB,'\u00AC':0xAC,'\u00AD':0xAD,'\u00AE':0xAE,'\u00AF':0xAF,
+    '\u00B0':0xB0,'\u00B1':0xB1,'\u00B2':0xB2,'\u00B3':0xB3,'\u00B4':0xB4,'\u00B5':0xB5,'\u00B6':0xB6,'\u00B7':0xB7,
+    '\u00B8':0xB8,'\u00B9':0xB9,'\u00BA':0xBA,'\u00BB':0xBB,'\u00BC':0xBC,'\u00BD':0xBD,'\u00BE':0xBE,'\u00BF':0xBF,
+    '\u00C0':0xC0,'\u00C1':0xC1,'\u00C2':0xC2,'\u00C3':0xC3,'\u00C4':0xC4,'\u00C5':0xC5,'\u00C6':0xC6,'\u00C7':0xC7,
+    '\u00C8':0xC8,'\u00C9':0xC9,'\u00CA':0xCA,'\u00CB':0xCB,'\u00CC':0xCC,'\u00CD':0xCD,'\u00CE':0xCE,'\u00CF':0xCF,
+    '\u00D0':0xD0,'\u00D1':0xD1,'\u00D2':0xD2,'\u00D3':0xD3,'\u00D4':0xD4,'\u00D5':0xD5,'\u00D6':0xD6,'\u00D7':0xD7,
+    '\u00D8':0xD8,'\u00D9':0xD9,'\u00DA':0xDA,'\u00DB':0xDB,'\u00DC':0xDC,'\u00DD':0xDD,'\u00DE':0xDE,'\u00DF':0xDF,
+    '\u00E0':0xE0,'\u00E1':0xE1,'\u00E2':0xE2,'\u00E3':0xE3,'\u00E4':0xE4,'\u00E5':0xE5,'\u00E6':0xE6,'\u00E7':0xE7,
+    '\u00E8':0xE8,'\u00E9':0xE9,'\u00EA':0xEA,'\u00EB':0xEB,'\u00EC':0xEC,'\u00ED':0xED,'\u00EE':0xEE,'\u00EF':0xEF,
+    '\u00F0':0xF0,'\u00F1':0xF1,'\u00F2':0xF2,'\u00F3':0xF3,'\u00F4':0xF4,'\u00F5':0xF5,'\u00F6':0xF6,'\u00F7':0xF7,
+    '\u00F8':0xF8,'\u00F9':0xF9,'\u00FA':0xFA,'\u00FB':0xFB,'\u00FC':0xFC,'\u00FD':0xFD,'\u00FE':0xFE,'\u00FF':0xFF
+  };
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    const code = str.charCodeAt(i);
+    if (code < 128) { buf[j++] = code; }
+    else if (map[c] !== undefined) { buf[j++] = map[c]; }
+    else { buf[j++] = 63; } // '?' para caracteres no mapeables
+  }
+  return buf.slice(0, j);
+}
+
+function fechaHoy() {
+  const d = new Date();
+  return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');
+}
+
+function toast(msg, error=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast'+(error?' error':'');
+  el.classList.add('visible'); setTimeout(()=>el.classList.remove('visible'), 3000);
+}
+
+// Inicio
+cargarTodos();
+</script>
+</body>
+</html>
