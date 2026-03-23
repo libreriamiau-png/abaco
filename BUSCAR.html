@@ -235,6 +235,12 @@
     </div>
 
     <div class="filtro-grupo">
+      <label>Editorial</label>
+      <input type="text" id="fEditorial" placeholder="Alianza, Crítica, Gedisa..."
+        onkeydown="if(event.key==='Enter') buscar()">
+    </div>
+
+    <div class="filtro-grupo">
       <label>Localización en librería</label>
       <input type="text" id="fLocaliz" placeholder="9E, 3AR..."
         onkeydown="if(event.key==='Enter') buscar()">
@@ -319,7 +325,9 @@ function buildQuery() {
   if (materia) p.push(`or=(materia.ilike.*${encodeURIComponent(materia)}*,materia2.ilike.*${encodeURIComponent(materia)}*)`);
   if (precMin) p.push(`precio=gte.${precMin}`);
   if (precMax) p.push(`precio=lte.${precMax}`);
-  if (lugar)   p.push(`lugar=ilike.*${encodeURIComponent(lugar)}*`);
+  if (lugar)    p.push(`lugar=ilike.*${encodeURIComponent(lugar)}*`);
+  const editorial = document.getElementById('fEditorial').value.trim();
+  if (editorial) p.push(`editorial=ilike.*${encodeURIComponent(editorial)}*`);
   if (localiz) p.push(`localiz=ilike.*${encodeURIComponent(localiz)}*`);
   if (anioMin) p.push(`fecha=gte.${anioMin}`);
   if (anioMax) p.push(`fecha=lte.${anioMax}`);
@@ -447,7 +455,7 @@ function cambiarVista(v) {
 }
 
 function limpiar() {
-  ['fTexto','fMateria','fLugar','fLocaliz','fPrecioMin','fPrecioMax','fAnioMin','fAnioMax'].forEach(id => {
+  ['fTexto','fMateria','fLugar','fEditorial','fLocaliz','fPrecioMin','fPrecioMax','fAnioMin','fAnioMax'].forEach(id => {
     document.getElementById(id).value = '';
   });
   ['fTipo','fIdioma','fEncuadernacion','fEstado'].forEach(id => {
