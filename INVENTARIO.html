@@ -678,9 +678,9 @@ async function cargarStats() {
       apiConteo('/inventario?'),
       apiConteo('/inventario?precio=is.null'),
       apiFetch('/inventario?select=stock_no&order=stock_no.desc&limit=1'),
-      apiFetch('/inventario?select=precio&precio=not.is.null')
+      apiFetch('/inventario?select=precio,cantidad&precio=not.is.null')
     ]);
-    const valor = (todos||[]).reduce((s,l)=>s+parseFloat(l.precio||0),0);
+    const valor = (todos||[]).reduce((s,l)=>s+parseFloat(l.precio||0)*(parseInt(l.cantidad)||1),0);
     document.getElementById('statTotal').textContent     = total.toLocaleString('es-ES');
     document.getElementById('statValor').textContent     = valor>0 ? valor.toFixed(0)+'€' : '—';
     document.getElementById('statUltimo').textContent    = maxStock?.[0]?.stock_no||'—';
@@ -884,6 +884,32 @@ async function guardarLibro() {
     } catch { datos.stock_no=Date.now()%99999; }
   }
 
+  // ── DETECCIÓN DE DUPLICADOS ──
+  if (!editandoId) {
+    try {
+      let duplicados = [];
+      if (datos.isbn) {
+        const porIsbn = await apiFetch(`/inventario?isbn=eq.${encodeURIComponent(datos.isbn)}&select=stock_no,titulo,autor,fecha`);
+        duplicados = [...duplicados, ...(porIsbn||[])];
+      }
+      if (!duplicados.length && datos.titulo && datos.autor) {
+        const porTituloAutor = await apiFetch(
+          `/inventario?titulo=ilike.${encodeURIComponent(datos.titulo)}&autor=ilike.${encodeURIComponent(datos.autor)}&select=stock_no,titulo,autor,fecha`
+        );
+        duplicados = [...duplicados, ...(porTituloAutor||[])];
+      }
+      if (duplicados.length) {
+        const d = duplicados[0];
+        const continuar = confirm(
+          `⚠️ Posible duplicado detectado\n\n` +
+          `Stock nº ${d.stock_no} — ${d.titulo||''}\n${d.autor||''} ${d.fecha?'('+d.fecha+')':''}\n\n` +
+          `¿Guardar igualmente?`
+        );
+        if (!continuar) return;
+      }
+    } catch(e) {}
+  }
+
   const btn=document.getElementById('btnGuardar');
   btn.disabled=true; btn.textContent='⏳ Guardando...';
   try {
@@ -1023,7 +1049,10 @@ function configurarDittos() {
   Object.entries(DITTO_CAMPOS).forEach(([fieldId, dataKey]) => {
     const field = document.getElementById(fieldId);
     if (!field) return;
-    const parent = field.closest('div');
+    // Si el campo está dentro de ac-wrap, subir un nivel más para encontrar el label
+    const parent = field.closest('.ac-wrap')
+      ? field.closest('.ac-wrap').parentElement
+      : field.closest('div');
     if (!parent) return;
     const label = parent.querySelector('label');
     if (!label) return;
@@ -1031,8 +1060,8 @@ function configurarDittos() {
     btn.type = 'button';
     btn.id = 'ditto_'+fieldId;
     btn.className = 'btn-ditto sin-datos';
-    btn.textContent = '″';
-    btn.title = 'Copiar de última ficha (Alt+D)';
+    btn.textContent = '\u2033';
+    btn.title = 'Copiar de \u00faltima ficha (Alt+D)';
     btn.onclick = () => copiarDeLast(fieldId, dataKey);
     label.appendChild(btn);
   });
