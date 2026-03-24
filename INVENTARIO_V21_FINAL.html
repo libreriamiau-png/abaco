@@ -1,0 +1,1358 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 Inventario — Libros Bosch</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --negro:    #1a1a1a;
+      --oscuro:   #2c2c2c;
+      --medio:    #555;
+      --muted:    #888;
+      --borde:    #ccc;
+      --fondo:    #f5f5f5;
+      --blanco:   #ffffff;
+      --dorado:   #c8640a;
+      --dorado-l: #e07010;
+      --verde:    #2d6a4f;
+      --rojo:     #b33a2a;
+      --morado:   #667eea;
+      --morado-d: #764ba2;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--fondo); color: var(--negro);
+      line-height: 1.5; padding: 20px; font-size: 15px;
+    }
+
+    .header {
+      background: var(--negro); color: white;
+      padding: 20px 32px; margin-bottom: 24px;
+      border-bottom: 3px solid var(--dorado);
+    }
+    .header h1 { font-size:1.6rem; font-weight:700; margin-bottom:2px; }
+    .header p  { font-size:.9rem; opacity:.7; }
+    .header-nav { display:flex; gap:20px; margin-top:12px; flex-wrap:wrap; }
+    .header-nav a {
+      color:white; opacity:.6; font-size:.85rem; text-transform:uppercase;
+      text-decoration:none; padding:4px 0; border-bottom:2px solid transparent; transition:all .2s;
+    }
+    .header-nav a:hover, .header-nav a.activo { opacity:1; border-bottom-color:var(--dorado); }
+
+    /* Campo compra */
+    .compra-field {
+      position: relative;
+    }
+    .compra-autocomplete {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--borde);
+      border-top: none;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: none;
+    }
+    .compra-autocomplete.visible { display: block; }
+    .compra-autocomplete-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background .1s;
+    }
+    .compra-autocomplete-item:hover {
+      background: #f8fafc;
+    }
+    .compra-autocomplete-codigo {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      color: var(--morado);
+      font-size: 14px;
+    }
+    .compra-autocomplete-proveedor {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .badge-compra {
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .dashboard-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;
+    }
+    .stat-card {
+      background:white; padding:20px; border:1px solid var(--borde);
+      border-top:3px solid var(--dorado);
+    }
+    .stat-card .label { font-size:.78rem; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+    .stat-card .value { font-size:2rem; font-weight:700; color:var(--negro); line-height:1; }
+    .stat-card .trend { font-size:.83rem; color:var(--verde); margin-top:6px; }
+
+    .card {
+      background:white; padding:24px; border:1px solid var(--borde); margin-bottom:20px;
+    }
+    .card-title {
+      font-size:1rem; font-weight:700; margin-bottom:18px;
+      display:flex; align-items:center; gap:8px; justify-content:space-between;
+      border-bottom:2px solid var(--borde); padding-bottom:12px; text-transform:uppercase;
+    }
+    .card-title-left { display:flex; align-items:center; gap:10px; }
+    .badge { background:var(--dorado); color:white; padding:2px 8px; font-size:.72rem; font-weight:700; }
+
+    /* PESTAÑAS */
+    .tabs { display:flex; gap:0; border-bottom:2px solid var(--borde); margin-bottom:20px; }
+    .tab {
+      padding:10px 24px; font-size:.9rem; font-weight:700; cursor:pointer;
+      border:2px solid transparent; border-bottom:none; margin-bottom:-2px;
+      background:var(--fondo); color:var(--muted); transition:all .15s; text-transform:uppercase;
+    }
+    .tab:hover { color:var(--negro); background:white; }
+    .tab.activa { background:white; color:var(--negro); border-color:var(--borde); border-bottom-color:white; }
+    .tab-panel { display:none; }
+    .tab-panel.visible { display:block; }
+
+    .form-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .span2 { grid-column:span 2; }
+    .span3 { grid-column:span 3; }
+
+    .form-section {
+      grid-column:span 3; display:flex; align-items:center; gap:10px;
+      font-size:.78rem; font-weight:700; text-transform:uppercase;
+      color:var(--muted); margin-top:10px; padding-top:4px;
+    }
+    .form-section::after { content:''; flex:1; height:1px; background:var(--borde); }
+
+    label {
+      display:block; font-size:.78rem; font-weight:700; margin-bottom:4px;
+      color:var(--oscuro); text-transform:uppercase;
+    }
+
+    input, select, textarea {
+      width:100%; padding:9px 12px; border:1px solid var(--borde);
+      font-size:.95rem; background:white; color:var(--negro); font-family:Arial,sans-serif;
+      transition:border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline:none; border-color:var(--dorado); box-shadow:0 0 0 2px rgba(200,100,10,.1);
+    }
+    input[readonly] { background:var(--fondo); color:var(--muted); }
+    input:disabled { background:var(--fondo); color:var(--muted); opacity:0.7; }
+    textarea { min-height:80px; resize:vertical; }
+
+    .isbn-row { display:flex; gap:8px; align-items:flex-end; }
+    .isbn-row input { flex:1; }
+    .btn-isbn {
+      padding:9px 16px; background:var(--negro); color:white; border:none;
+      font-size:.88rem; font-weight:700; cursor:pointer; white-space:nowrap;
+      border-bottom:2px solid var(--dorado); transition:background .15s;
+    }
+    .btn-isbn:hover { background:var(--oscuro); }
+    .btn-isbn:disabled { opacity:.5; cursor:not-allowed; }
+
+    .isbn-ok {
+      grid-column:span 3; background:#e8f5e9; border-left:3px solid var(--verde);
+      padding:10px 14px; font-size:.88rem; color:var(--verde); display:none;
+    }
+
+    .checkrow {
+      display:flex; align-items:center; gap:8px;
+    }
+    .checkrow input[type=checkbox] {
+      width:18px; height:18px; accent-color:var(--dorado); cursor:pointer; flex-shrink:0;
+    }
+    .checkrow label {
+      text-transform:none; font-weight:600; font-size:.92rem;
+      color:var(--negro); cursor:pointer; margin:0;
+    }
+
+    .btn {
+      padding:9px 20px; border:1px solid var(--borde); font-size:.9rem; font-weight:700;
+      cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:6px;
+      font-family:Arial,sans-serif; background:white; color:var(--negro);
+    }
+    .btn:hover { background:var(--fondo); }
+    .btn-primary  { background:var(--dorado); color:white; border-color:var(--dorado); }
+    .btn-primary:hover  { background:var(--dorado-l); border-color:var(--dorado-l); }
+    .btn-danger   { color:var(--rojo); border-color:var(--rojo); }
+    .btn-danger:hover   { background:var(--rojo); color:white; }
+    .btn-sm { padding:5px 12px; font-size:.82rem; }
+
+    .flex { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .mt-3 { margin-top:14px; }
+
+    /* Tabla */
+    .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+    .search-wrap { position:relative; flex:1; min-width:200px; }
+    .search-wrap input { padding-left:36px; }
+    .search-wrap::before {
+      content:'🔍'; position:absolute; left:10px; top:50%;
+      transform:translateY(-50%); font-size:.9rem; opacity:.5;
+    }
+
+    .table-wrap { overflow-x:auto; border:1px solid var(--borde); }
+    table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    th {
+      text-align:left; padding:10px 12px; background:var(--negro); color:white;
+      font-weight:700; font-size:.78rem; text-transform:uppercase; white-space:nowrap;
+    }
+    td { padding:10px 12px; border-bottom:1px solid #eee; color:var(--negro); vertical-align:top; }
+    tr:hover td { background:#fff8f0; }
+    tr:last-child td { border-bottom:none; }
+
+    .td-stock { font-weight:700; color:var(--dorado); white-space:nowrap; }
+    .td-titulo { max-width:260px; line-height:1.4; }
+    .td-autor  { color:var(--medio); font-size:.85rem; white-space:nowrap; }
+    .td-tipo   { display:inline-block; padding:2px 7px; font-size:.75rem; background:#eee; font-weight:700; }
+    .td-precio { font-weight:700; white-space:nowrap; }
+    .td-estado { display:inline-block; padding:2px 7px; font-size:.75rem; font-weight:700; }
+    .est-bien     { background:#e8f5e9; color:#2d6a4f; }
+    .est-regular  { background:#fff3e0; color:#c8640a; }
+    .est-malo     { background:#fce4e4; color:#b33a2a; }
+
+    .acciones { display:flex; gap:4px; white-space:nowrap; }
+
+    .paginacion { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:14px; flex-wrap:wrap; }
+    .paginacion-info { font-size:.85rem; color:var(--muted); }
+    .btn-pag {
+      padding:5px 14px; border:1px solid var(--borde); background:white;
+      font-size:.85rem; cursor:pointer; font-weight:700; transition:all .15s;
+    }
+    .btn-pag:hover { border-color:var(--dorado); color:var(--dorado); }
+    .btn-pag:disabled { opacity:.4; cursor:not-allowed; }
+
+    .estado-carga { text-align:center; padding:40px; color:var(--muted); }
+    .spinner {
+      display:inline-block; width:22px; height:22px; border:3px solid #ddd;
+      border-top-color:var(--dorado); border-radius:50%;
+      animation:spin .7s linear infinite; margin-bottom:10px;
+    }
+    @keyframes spin { to{transform:rotate(360deg);} }
+
+    .toast { 
+      position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+      background:var(--negro); color:white; padding:12px 20px;
+      border-radius:6px; z-index:9999; opacity:0; transition:opacity .2s;
+      box-shadow:0 4px 12px rgba(0,0,0,.3);
+    }
+    .toast.visible { opacity:1; }
+    .toast.error { background:var(--rojo); }
+
+    .ac-wrap { position:relative; }
+    .ac-lista {
+      position:absolute; top:100%; left:0; right:0; background:white;
+      border:1px solid var(--borde); border-top:none; max-height:200px;
+      overflow-y:auto; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,.1); display:none;
+    }
+    .ac-lista.visible { display:block; }
+    .ac-item {
+      padding:8px 12px; cursor:pointer; border-bottom:1px solid #f0f0f0;
+      font-size:.9rem; transition:background .1s;
+    }
+    .ac-item:hover, .ac-item.ac-activo { background:#f8f8f8; }
+    .ac-item:last-child { border-bottom:none; }
+
+    .btn-ditto {
+      background:none; border:none; cursor:pointer; font-size:1.2rem;
+      color:var(--muted); margin-left:4px; padding:0 4px; transition:color .15s;
+    }
+    .btn-ditto:hover { color:var(--dorado); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📚 Inventario — Libros Bosch</h1>
+  <p>Sistema de gestión integral</p>
+  <nav class="header-nav">
+    <a href="INVENTARIO.html" class="activo">Inventario</a>
+    <a href="CLIENTES.html">Clientes</a>
+    <a href="COMPRAS.html">Compras</a>
+    <a href="BUSCAR.html">Buscador</a>
+    <a href="IMPORTAR.html">Importar</a>
+    <a href="EXPORTAR_ABE.html">Exportar AbeBooks</a>
+  </nav>
+</div>
+
+
+<div class="dashboard-grid" id="dashboard">
+  <div class="stat-card">
+    <div class="label">Total Libros</div>
+    <div class="value" id="statTotal">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Valor Inventario</div>
+    <div class="value" id="statValor">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Último Stock</div>
+    <div class="value" id="statStock">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Tipos</div>
+    <div class="value" id="statTipos">—</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <div class="card-title-left">
+      <span>Gestión de Inventario</span>
+      <span class="badge">v19</span>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="nuevoLibro()">+ Nuevo libro</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab activa" onclick="cambiarTab('principal')">Principal</div>
+    <div class="tab" onclick="cambiarTab('avanzado')">Avanzado</div>
+  </div>
+
+  <form id="formLibro" onsubmit="guardarLibro(event)">
+    <input type="hidden" id="libroId">
+
+    <!-- PANEL PRINCIPAL -->
+    <div id="tabPrincipal" class="tab-panel visible">
+      <div class="form-grid">
+        <div class="form-section">📖 Identificación</div>
+
+        <div>
+          <label>Stock *</label>
+          <input id="fStock" type="text" readonly>
+        </div>
+        <div class="span2">
+          <label>Autor *</label>
+          <input id="fAutor" type="text" required onblur="formatearAutor()">
+        </div>
+
+        <div class="span3">
+          <label>Título *</label>
+          <input id="fTitulo" type="text" required>
+        </div>
+
+        <div class="ac-wrap">
+          <label>Lugar <button type="button" class="btn-ditto" data-campo="lugar" title="Copiar del anterior (Alt+D)">″</button></label>
+          <input id="fLugar" type="text" oninput="autocompleteInput(this,'lugar')" onkeydown="acKeydown(event,this,'lugar')" onfocus="autocompleteInputFixed(this,'lugar')">
+          <div id="lugarLista" class="ac-lista"></div>
+        </div>
+        <div>
+          <label>Editorial <button type="button" class="btn-ditto" data-campo="editorial" title="Alt+D">″</button></label>
+          <input id="fEditorial" type="text">
+        </div>
+        <div>
+          <label>Fecha <button type="button" class="btn-ditto" data-campo="fecha" title="Alt+D">″</button></label>
+          <input id="fFecha" type="text" placeholder="1985">
+        </div>
+
+        <div>
+          <label>Precio *</label>
+          <input id="fPrecio" type="number" step="0.01" required placeholder="0.00">
+        </div>
+        <div>
+          <label>Encuadernación * <button type="button" class="btn-ditto" data-campo="encuadernacion" title="Alt+D">″</button></label>
+          <select id="fEncuadernacion" required onchange="actualizarAbebooks()">
+            <option value="">—</option>
+            <option>Rústica</option>
+            <option>Rústica con solapas</option>
+            <option>Editorial con solapas</option>
+            <option>Cartoné</option>
+            <option>Tela editorial</option>
+            <option>Tela ed. estampada</option>
+            <option>Holandesa</option>
+            <option>Holandesa puntas</option>
+            <option>Pasta española</option>
+          </select>
+        </div>
+        <div>
+          <label>Encuad. AbeBooks</label>
+          <input id="fEncuadernacionAbebooks" type="text" readonly>
+        </div>
+
+        <div>
+          <label>Sobrecubierta <button type="button" class="btn-ditto" data-campo="sobrecubierta" title="Alt+D">″</button></label>
+          <select id="fSobrecubierta" onchange="toggleEstadoSobrecubierta()">
+            <option value="">—</option>
+            <option>Con sobrecubierta</option>
+            <option>Sin sobrecubierta</option>
+          </select>
+        </div>
+        <div id="wrapEstadoSob" style="display:none;">
+          <label>Estado sobrecubierta</label>
+          <select id="fEstadoSobrecubierta">
+            <option value="">—</option>
+            <option>Muy bien</option>
+            <option>Bien</option>
+            <option>Regular</option>
+          </select>
+        </div>
+        <div>
+          <label>Estado * <button type="button" class="btn-ditto" data-campo="estado" title="Alt+D">″</button></label>
+          <select id="fEstado" required>
+            <option value="">—</option>
+            <option>Muy bien</option>
+            <option>Bien</option>
+            <option>Como nuevo</option>
+            <option>Aceptable</option>
+            <option>Pobre</option>
+            <option>Nuevo</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Cantidad</label>
+          <input id="fCantidad" type="number" value="1" min="1">
+        </div>
+        <div class="ac-wrap">
+          <label>Tamaño <button type="button" class="btn-ditto" data-campo="tamano" title="Alt+D">″</button></label>
+          <input id="fTamanoCm" type="text" placeholder="23 x 15 cm" oninput="autocompleteInputFixed(this,'tamano')" onkeydown="acKeydown(event,this,'tamano')" onfocus="autocompleteInputFixed(this,'tamano')">
+          <div id="tamanoLista" class="ac-lista"></div>
+        </div>
+        <div>
+          <label>Tamaño libresco</label>
+          <input id="fTamanoLibresco" type="text" placeholder="8vo.">
+        </div>
+
+        <div>
+          <label>Páginas</label>
+          <input id="fPaginas" type="text" placeholder="250">
+        </div>
+        <div>
+          <label>Materia 1 <button type="button" class="btn-ditto" data-campo="materia" title="Alt+D">″</button></label>
+          <input id="fMateria" type="text">
+        </div>
+        <div>
+          <label>Materia 2 <button type="button" class="btn-ditto" data-campo="materia2" title="Alt+D">″</button></label>
+          <input id="fMateria2" type="text">
+        </div>
+
+        <div>
+          <label>Idioma <button type="button" class="btn-ditto" data-campo="idioma" title="Alt+D">″</button></label>
+          <input id="fIdioma" type="text" value="Español">
+        </div>
+        <div>
+          <label>Localización <button type="button" class="btn-ditto" data-campo="localiz" title="Alt+D">″</button></label>
+          <input id="fLocaliz" type="text">
+        </div>
+        <div class="compra-field">
+          <label>Compra/Lote <button type="button" class="btn-ditto" onclick="dittoCompra()" title="Copiar del anterior (Alt+L)">″</button></label>
+          <input 
+            type="text" 
+            id="fCompra" 
+            placeholder="26HIG (opcional)"
+            autocomplete="off"
+            oninput="buscarCompras(this.value)"
+            onfocus="mostrarSugerenciasCompras()"
+            onkeydown="if(event.key==='Escape') document.getElementById('compraAutocomplete').classList.remove('visible')"
+          >
+          <div id="compraAutocomplete" class="compra-autocomplete"></div>
+          <input type="hidden" id="fCompraId">
+        </div>
+
+        <div class="span3">
+          <label>Descripción
+            <button type="button" class="btn btn-sm" onclick="generarDescripcion()" style="float:right; padding:3px 10px;">✨ Generar automática</button>
+          </label>
+          <textarea id="fDescripcion"></textarea>
+        </div>
+
+        <div class="checkrow">
+          <input type="checkbox" id="fPrimeraEdicion">
+          <label for="fPrimeraEdicion">Primera edición</label>
+        </div>
+        <div class="checkrow">
+          <input type="checkbox" id="fDedicatoria">
+          <label for="fDedicatoria">Dedicatoria autógrafa</label>
+        </div>
+        <div class="checkrow">
+          <input type="checkbox" id="fFirmaAutor">
+          <label for="fFirmaAutor">Firma del autor</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL AVANZADO -->
+    <div id="tabAvanzado" class="tab-panel">
+      <div class="form-grid">
+        <div class="form-section">🔍 Datos Adicionales</div>
+
+        <div>
+          <label>Precio Compra <button type="button" class="btn-ditto" data-campo="precio_compra" title="Alt+D">″</button></label>
+          <input id="fPrecioCompra" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label>Catálogo <button type="button" class="btn-ditto" data-campo="catalogo" title="Alt+D">″</button></label>
+          <input id="fCatalogo" type="text">
+        </div>
+        <div>
+          <label>Tipo</label>
+          <select id="fTipo">
+            <option value="">—</option>
+            <option>Libro</option>
+            <option>Revista</option>
+            <option>Folleto</option>
+          </select>
+        </div>
+
+        <div class="checkrow">
+          <input type="checkbox" id="fExLibris">
+          <label for="fExLibris">Ex-libris o sello</label>
+        </div>
+        <div class="span2">
+          <label>Procedencia</label>
+          <input id="fProcedencia" type="text">
+        </div>
+
+        <div class="span3">
+          <label>Notas internas</label>
+          <textarea id="fNotas"></textarea>
+        </div>
+
+        <div class="form-section">📚 ISBN</div>
+        <div class="span3 isbn-row">
+          <input id="fIsbn" type="text" placeholder="ISBN-10 o ISBN-13">
+          <button type="button" class="btn-isbn" onclick="buscarIsbn()">🔍 Buscar datos</button>
+        </div>
+        <div id="isbnOk" class="isbn-ok">✓ Datos ISBN cargados correctamente</div>
+      </div>
+    </div>
+
+    <div class="flex mt-3" style="justify-content:flex-end;">
+      <button type="button" class="btn" onclick="cancelarEdicion()">Cancelar</button>
+      <button type="submit" class="btn btn-primary">💾 Guardar libro</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <span>Listado</span>
+    <div class="flex">
+      <button class="btn btn-sm" onclick="exportarCSV()">📥 Exportar CSV</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Buscar por título, autor, ISBN o stock..." oninput="filtrar()">
+    </div>
+    <select id="filtroTipo" onchange="filtrar()">
+      <option value="">Todos los tipos</option>
+      <option>Libro</option>
+      <option>Revista</option>
+      <option>Folleto</option>
+    </select>
+    <button class="btn btn-sm" onclick="cargarInventario()">↺ Refrescar</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Stock</th>
+          <th>Autor</th>
+          <th>Título</th>
+          <th>Fecha</th>
+          <th>Tipo</th>
+          <th>Precio</th>
+          <th>Cant.</th>
+          <th>Estado</th>
+          <th>Compra</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyInventario"></tbody>
+    </table>
+  </div>
+
+  <div class="paginacion">
+    <div class="paginacion-info" id="paginacionInfo"></div>
+    <div class="flex">
+      <button class="btn-pag" onclick="irPagina(paginaActual-1)" id="btnAnterior">← Anterior</button>
+      <span style="font-size:.85rem; color:var(--medio);">Página <strong id="numPagActual">1</strong></span>
+      <button class="btn-pag" onclick="irPagina(paginaActual+1)" id="btnSiguiente">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const URL='https://ohlrldyobyxurnkwheli.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9obHJsZHlvYnl4dXJua3doZWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjEwNTEsImV4cCI6MjA4OTU5NzA1MX0.GcK2rk3gyPf0MeaoMgnQeuUfRMwEgr1SbUw6Md6AWCU';
+const db=window.supabase.createClient(URL,KEY);
+
+let comprasDisponibles = [];
+
+async function cargarComprasDisponibles() {
+  try {
+    const { data, error } = await db
+      .from('compras')
+      .select('*')
+      .order('fecha', { ascending: false });
+    
+    if (error) throw error;
+    comprasDisponibles = data || [];
+  } catch (error) {
+    console.error('Error cargando compras:', error);
+  }
+}
+
+async function buscarCompras(texto) {
+  if (!texto || texto.length < 2) {
+    document.getElementById('compraAutocomplete').classList.remove('visible');
+    return;
+  }
+  
+  if (comprasDisponibles.length === 0) {
+    await cargarComprasDisponibles();
+  }
+  
+  const resultados = comprasDisponibles.filter(c => 
+    c.codigo.toLowerCase().includes(texto.toLowerCase()) ||
+    c.proveedor.toLowerCase().includes(texto.toLowerCase())
+  );
+  
+  mostrarResultadosCompras(resultados);
+}
+
+function mostrarResultadosCompras(resultados) {
+  const container = document.getElementById('compraAutocomplete');
+
+  if (resultados.length === 0) {
+    container.innerHTML = '<div class="compra-autocomplete-item">Sin resultados</div>';
+    container.classList.add('visible');
+    return;
+  }
+
+  container.innerHTML = resultados.map(c => {
+    const codigo = String(c.codigo || '').replace(/'/g, "\\'");
+    const codigoDisplay = String(c.codigo || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const proveedor = String(c.proveedor || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
+    <div class="compra-autocomplete-item" onmousedown="seleccionarCompra(${c.id}, '${codigo}')">
+      <div class="compra-autocomplete-codigo">${codigoDisplay}</div>
+      <div class="compra-autocomplete-proveedor">${proveedor}</div>
+    </div>
+  `;
+  }).join('');
+
+  container.classList.add('visible');
+}
+
+function seleccionarCompra(id, codigo) {
+  const compra = comprasDisponibles.find(c => c.id === id);
+  if (!compra) return;
+  
+  document.getElementById('fCompra').value = codigo;
+  document.getElementById('fCompraId').value = id;
+  document.getElementById('compraAutocomplete').classList.remove('visible');
+}
+
+function mostrarSugerenciasCompras() {
+  const container = document.getElementById('compraAutocomplete');
+  if (comprasDisponibles.length === 0) {
+    container.innerHTML = '<div class="compra-autocomplete-item">No hay compras guardadas</div>';
+    container.classList.add('visible');
+    return;
+  }
+  mostrarResultadosCompras(comprasDisponibles.slice(0, 5));
+}
+
+function dittoCompra() {
+  if (ultimoLibroGuardado && ultimoLibroGuardado.compra_codigo) {
+    document.getElementById('fCompra').value = ultimoLibroGuardado.compra_codigo;
+    document.getElementById('fCompraId').value = ultimoLibroGuardado.compra_id || '';
+  }
+}
+
+// Cerrar autocomplete al hacer click fuera
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.compra-field')) {
+    document.getElementById('compraAutocomplete').classList.remove('visible');
+  }
+  if (!e.target.closest('.ac-wrap')) {
+    ['lugarLista','tamanoLista'].forEach(cerrarAc);
+  }
+});
+
+// ============================================
+// RESTO DEL CÓDIGO ORIGINAL
+// ============================================
+
+let todos=[];
+let filtrados=[];
+let paginaActual=1;
+const POR_PAGINA=50;
+let editandoId=null;
+let ultimoLibroGuardado=null;
+let lugaresCache=[];
+
+function normalizarTabla(endpoint){
+  return String(endpoint || '').split('?')[0].replace(/^\/+/, '');
+}
+
+async function apiFetch(endpoint,opts={}){
+  const tabla = normalizarTabla(endpoint);
+  let query = db.from(tabla).select('*');
+  const qs = String(endpoint || '').split('?')[1] || '';
+  const params = new URLSearchParams(qs);
+
+  const select = params.get('select');
+  if (select) {
+    query = db.from(tabla).select(select);
+  }
+
+  for (const [key, value] of params.entries()) {
+    if (key === 'select') continue;
+    if (key === 'order') {
+      query = query.order(value, { ascending: true });
+      continue;
+    }
+    if (value === 'not.is.null') {
+      query = query.not(key, 'is', null);
+      continue;
+    }
+    if (value === 'is.null') {
+      query = query.is(key, null);
+      continue;
+    }
+    query = query.eq(key, value);
+  }
+
+  const {data,error}=await query;
+  if(error)throw error;
+  return data || [];
+}
+
+async function apiPost(endpoint,body){
+  const tabla = normalizarTabla(endpoint);
+  const{data,error}=await db.from(tabla).insert([body]).select();
+  if(error)throw error;
+  return data[0];
+}
+async function apiPatch(endpoint,body){
+  const id=endpoint.split('/').pop();
+  const{data,error}=await db.from('inventario').update(body).eq('id',id).select();
+  if(error)throw error;
+  return data[0];
+}
+async function apiDelete(endpoint){
+  const id=endpoint.split('/').pop();
+  const{error}=await db.from('inventario').delete().eq('id',id);
+  if(error)throw error;
+}
+
+// ── CARGAR INVENTARIO ──
+async function cargarInventario(){
+  try {
+    mostrarCargando();
+    const {data,error}=await db
+      .from('inventario')
+      .select('*')
+      .order('stock_no',{ascending:false});
+    if(error)throw error;
+    todos=data||[];
+    filtrados=todos;
+    paginaActual=1;
+    renderPagina();
+    calcularEstadisticas();
+  }catch(e){
+    mostrarError(e.message);
+  }
+}
+
+function calcularEstadisticas() {
+  const total = todos.length;
+  const valor = todos.reduce((sum,l)=>{
+    const p=parseFloat(l.precio)||0;
+    const c=parseInt(l.cantidad)||1;
+    return sum+(p*c);
+  },0);
+  const maxStock = todos.length ? Math.max(...todos.map(l=>l.stock_no||0)) : 0;
+  const tipos = [...new Set(todos.map(l=>l.tipo).filter(Boolean))].length;
+  document.getElementById('statTotal').textContent=total.toLocaleString();
+  document.getElementById('statValor').textContent=valor.toLocaleString('es-ES',{minimumFractionDigits:2})+'€';
+  document.getElementById('statStock').textContent=maxStock;
+  document.getElementById('statTipos').textContent=tipos||'—';
+}
+
+function renderPagina(){
+  const inicio=(paginaActual-1)*POR_PAGINA;
+  const fin=inicio+POR_PAGINA;
+  const pagina=filtrados.slice(inicio,fin);
+  const tbody=document.getElementById('tbodyInventario');
+  if(!pagina.length){
+    tbody.innerHTML='<tr><td colspan="10" style="text-align:center; padding:40px; color:var(--muted);">No hay libros para mostrar</td></tr>';
+  }else{
+    tbody.innerHTML=pagina.map(l=>{
+      const estClass={'Muy bien':'est-bien','Bien':'est-bien','Como nuevo':'est-bien',
+        'Aceptable':'est-regular','Pobre':'est-malo','Nuevo':'est-bien'}[l.estado]||'';
+      return `
+        <tr>
+          <td class="td-stock">${l.stock_no||'—'}</td>
+          <td class="td-autor">${l.autor||'—'}</td>
+          <td class="td-titulo">${l.titulo||'—'}</td>
+          <td>${l.fecha||'—'}</td>
+          <td><span class="td-tipo">${l.tipo||'—'}</span></td>
+          <td class="td-precio">${(parseFloat(l.precio)||0).toFixed(2)}€</td>
+          <td>${l.cantidad||1}</td>
+          <td><span class="td-estado ${estClass}">${l.estado||'—'}</span></td>
+          <td>${l.compra_codigo ? `<span class="badge-compra">${l.compra_codigo}</span>` : '—'}</td>
+          <td class="acciones">
+            <button class="btn btn-sm" onclick="editarLibro(${l.id})">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarLibro(${l.id})">🗑️</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+  document.getElementById('paginacionInfo').textContent=
+    `Mostrando ${inicio+1}-${Math.min(fin,filtrados.length)} de ${filtrados.length}`;
+  document.getElementById('numPagActual').textContent=paginaActual;
+  document.getElementById('btnAnterior').disabled=paginaActual===1;
+  document.getElementById('btnSiguiente').disabled=fin>=filtrados.length;
+}
+
+function irPagina(n){
+  const maxPag=Math.ceil(filtrados.length/POR_PAGINA)||1;
+  if(n<1||n>maxPag)return;
+  paginaActual=n; renderPagina();
+}
+
+function filtrar(){
+  const search=document.getElementById('searchInput').value.toLowerCase();
+  const tipo=document.getElementById('filtroTipo').value;
+  filtrados=todos.filter(l=>{
+    const matchSearch=!search||
+      (l.titulo||'').toLowerCase().includes(search)||
+      (l.autor||'').toLowerCase().includes(search)||
+      (l.isbn||'').toLowerCase().includes(search)||
+      (l.stock_no+'').includes(search);
+    const matchTipo=!tipo||l.tipo===tipo;
+    return matchSearch&&matchTipo;
+  });
+  paginaActual=1; renderPagina();
+}
+
+// ── PESTAÑAS ──
+function cambiarTab(nombre){
+  const tabs = document.querySelectorAll('.tabs .tab');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('visible'));
+  tabs.forEach(t=>t.classList.remove('activa'));
+  const esPrincipal = nombre==='principal';
+  const tabActiva = tabs[esPrincipal ? 0 : 1];
+  if(tabActiva) tabActiva.classList.add('activa');
+  document.getElementById(esPrincipal ? 'tabPrincipal' : 'tabAvanzado').classList.add('visible');
+}
+
+// ── NUEVO / EDITAR / CANCELAR ──
+function nuevoLibro(){
+  editandoId=null;
+  document.getElementById('formLibro').reset();
+  document.getElementById('libroId').value='';
+  document.getElementById('fStock').value='';
+  document.getElementById('fIdioma').value='Español';
+  document.getElementById('fCantidad').value='1';
+  document.getElementById('fCompra').value='';
+  document.getElementById('fCompraId').value='';
+  document.getElementById('isbnOk').style.display='none';
+  toggleEstadoSobrecubierta();
+  actualizarAbebooks();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function editarLibro(id){
+  const libro=todos.find(l=>l.id===id);
+  if(!libro)return;
+  editandoId=id;
+  
+  document.getElementById('libroId').value=libro.id;
+  document.getElementById('fStock').value=libro.stock_no||'';
+  document.getElementById('fAutor').value=libro.autor||'';
+  document.getElementById('fTitulo').value=libro.titulo||'';
+  document.getElementById('fLugar').value=libro.lugar||'';
+  document.getElementById('fEditorial').value=libro.editorial||'';
+  document.getElementById('fFecha').value=libro.fecha||'';
+  document.getElementById('fPrecio').value=libro.precio||'';
+  document.getElementById('fEncuadernacion').value=libro.encuadernacion||'';
+  document.getElementById('fEncuadernacionAbebooks').value=libro.encuadernacion_abebooks||'';
+  document.getElementById('fSobrecubierta').value=libro.sobrecubierta||'';
+  document.getElementById('fEstadoSobrecubierta').value=libro.estado_sobrecubierta||'';
+  document.getElementById('fEstado').value=libro.estado||'';
+  document.getElementById('fCantidad').value=libro.cantidad||1;
+  document.getElementById('fTamanoCm').value=libro.tamano_cm||'';
+  document.getElementById('fTamanoLibresco').value=libro.tamano_libresco||'';
+  document.getElementById('fPaginas').value=libro.paginas||'';
+  document.getElementById('fMateria').value=libro.materia||'';
+  document.getElementById('fMateria2').value=libro.materia2||'';
+  document.getElementById('fIdioma').value=libro.idioma||'';
+  document.getElementById('fLocaliz').value=libro.localiz||'';
+  document.getElementById('fCompra').value=libro.compra_codigo||'';
+  document.getElementById('fCompraId').value=libro.compra_id||'';
+  document.getElementById('fDescripcion').value=libro.descripcion||'';
+  document.getElementById('fPrimeraEdicion').checked=libro.primera_edicion||false;
+  document.getElementById('fDedicatoria').checked=libro.dedicatoria||false;
+  document.getElementById('fFirmaAutor').checked=libro.firma_autor||false;
+  document.getElementById('fPrecioCompra').value=libro.precio_compra||'';
+  document.getElementById('fCatalogo').value=libro.catalogo||'';
+  document.getElementById('fTipo').value=libro.tipo||'';
+  document.getElementById('fExLibris').checked=libro.ex_libris||false;
+  document.getElementById('fProcedencia').value=libro.procedencia||'';
+  document.getElementById('fNotas').value=libro.notas||'';
+  document.getElementById('fIsbn').value=libro.isbn||'';
+  toggleEstadoSobrecubierta();
+  
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cancelarEdicion(){
+  editandoId=null;
+  nuevoLibro();
+}
+
+async function obtenerSiguienteStockNo(){
+  const { data, error } = await db
+    .from('inventario')
+    .select('stock_no')
+    .order('stock_no', { ascending: false })
+    .limit(1);
+
+  if (error) throw error;
+  const ultimo = data && data[0] ? parseInt(data[0].stock_no, 10) || 0 : 0;
+  return ultimo + 1;
+}
+
+async function guardarLibro(e){
+  e.preventDefault();
+  
+  // Obtener valores de compra del formulario
+  const compra_id = document.getElementById('fCompraId').value || null;
+  const compra_codigo = document.getElementById('fCompra').value.trim() || null;
+  
+  const datos={
+    autor:document.getElementById('fAutor').value.trim(),
+    titulo:document.getElementById('fTitulo').value.trim(),
+    lugar:document.getElementById('fLugar').value.trim()||null,
+    editorial:document.getElementById('fEditorial').value.trim()||null,
+    fecha:document.getElementById('fFecha').value.trim()||null,
+    precio:parseFloat(document.getElementById('fPrecio').value)||0,
+    encuadernacion:document.getElementById('fEncuadernacion').value||null,
+    encuadernacion_abebooks:document.getElementById('fEncuadernacionAbebooks').value||null,
+    sobrecubierta:document.getElementById('fSobrecubierta').value||null,
+    estado_sobrecubierta:document.getElementById('fEstadoSobrecubierta').value||null,
+    estado:document.getElementById('fEstado').value||null,
+    cantidad:parseInt(document.getElementById('fCantidad').value)||1,
+    primera_edicion:document.getElementById('fPrimeraEdicion').checked,
+    dedicatoria:document.getElementById('fDedicatoria').checked,
+    firma_autor:document.getElementById('fFirmaAutor').checked,
+    tamano_cm:document.getElementById('fTamanoCm').value.trim()||null,
+    tamano_libresco:document.getElementById('fTamanoLibresco').value.trim()||null,
+    paginas:document.getElementById('fPaginas').value.trim()||null,
+    materia:document.getElementById('fMateria').value.trim()||null,
+    materia2:document.getElementById('fMateria2').value.trim()||null,
+    idioma:document.getElementById('fIdioma').value.trim()||null,
+    localiz:document.getElementById('fLocaliz').value.trim()||null,
+    compra_id:compra_id,
+    compra_codigo:compra_codigo,
+    descripcion:document.getElementById('fDescripcion').value.trim()||null,
+    precio_compra:parseFloat(document.getElementById('fPrecioCompra').value)||null,
+    catalogo:document.getElementById('fCatalogo').value.trim()||null,
+    tipo:document.getElementById('fTipo').value||null,
+    ex_libris:document.getElementById('fExLibris').checked,
+    procedencia:document.getElementById('fProcedencia').value.trim()||null,
+    notas:document.getElementById('fNotas').value.trim()||null,
+    isbn:document.getElementById('fIsbn').value.trim()||null
+  };
+
+  const autor=datos.autor.toLowerCase();
+  const titulo=datos.titulo.toLowerCase();
+  const isbn=datos.isbn?datos.isbn.toLowerCase():null;
+
+  try {
+    if(editandoId){
+      // Editar existente
+      await apiPatch(`/inventario/${editandoId}`,datos);
+      toast('✓ Libro actualizado');
+    }else{
+      // Nuevo libro
+      // Verificar duplicados
+      const duplicados=todos.filter(l=>
+        (isbn&&l.isbn&&l.isbn.toLowerCase()===isbn)||
+        (l.autor&&l.autor.toLowerCase()===autor&&l.titulo&&l.titulo.toLowerCase()===titulo)
+      );
+      if(duplicados.length>0){
+        if(!confirm(`Ya existe un libro similar:\n\n${duplicados[0].autor} - ${duplicados[0].titulo}\nStock: ${duplicados[0].stock_no}\n\n¿Guardar de todas formas?`)){
+          return;
+        }
+      }
+      // Obtener siguiente stock_no
+      datos.stock_no = await obtenerSiguienteStockNo();
+      const nuevo=await apiPost('inventario',datos);
+      ultimoLibroGuardado=nuevo;
+      
+      toast('✓ Libro guardado — Stock '+datos.stock_no);
+    }
+    await cargarInventario();
+    nuevoLibro();
+  }catch(e){
+    toast('Error: '+e.message,true);
+  }
+}
+
+async function eliminarLibro(id){
+  const libro=todos.find(l=>l.id===id);
+  if(!libro)return;
+  if(!confirm(`¿Eliminar libro?\n\nStock: ${libro.stock_no}\n${libro.autor||''} - ${libro.titulo||''}`))return;
+  try {
+    await apiDelete(`/inventario/${id}`);
+    toast('✓ Libro eliminado');
+    await cargarInventario();
+  }catch(e){
+    toast('Error: '+e.message,true);
+  }
+}
+
+// ── TOAST ──
+function toast(msg,error=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast'+(error?' error':'');
+  setTimeout(()=>el.classList.add('visible'),10);
+  setTimeout(()=>el.classList.remove('visible'),error?4000:2500);
+}
+
+// ── EXPORTAR CSV ──
+function exportarCSV(){
+  if(!filtrados.length){toast('No hay datos para exportar',true);return;}
+  const campos=['stock_no','autor','titulo','lugar','editorial','fecha','precio','encuadernacion','estado','cantidad','compra_codigo'];
+  const csvContent='data:text/csv;charset=utf-8,'+
+    campos.join(',')+'\n'+
+    filtrados.map(l=>campos.map(c=>{
+      const v=l[c]===null||l[c]===undefined?'':String(l[c]);
+      return v.includes(',')||v.includes('"')?`"${v.replace(/"/g,'""')}"`  :v;
+    }).join(',')).join('\n');
+  const link=document.createElement('a');
+  link.href=encodeURI(csvContent);
+  link.download='inventario_'+new Date().toISOString().split('T')[0]+'.csv';
+  link.click();
+  toast('✓ CSV exportado');
+}
+
+// ── ISBN LOOKUP ──
+async function buscarIsbn(){
+  const isbn=document.getElementById('fIsbn').value.trim();
+  if(!isbn){toast('Introduce un ISBN',true);return;}
+  document.getElementById('isbnOk').style.display='none';
+  toast('🔍 Buscando en Open Library y Google Books...');
+
+  const fetchConTimeout = async (url, ms=8000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      return await fetch(url, { signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  try {
+    const resp1=await fetchConTimeout(`https://openlibrary.org/isbn/${isbn}.json`);
+    if(resp1.ok){
+      const data=await resp1.json();
+      let cargoAlgo = false;
+      if(data.title){document.getElementById('fTitulo').value=data.title; cargoAlgo = true;}
+      if(data.publish_date){document.getElementById('fFecha').value=data.publish_date; cargoAlgo = true;}
+      if(data.publishers&&data.publishers[0]){document.getElementById('fEditorial').value=data.publishers[0]; cargoAlgo = true;}
+      if(data.number_of_pages){document.getElementById('fPaginas').value=data.number_of_pages; cargoAlgo = true;}
+      if(data.authors&&data.authors[0]){
+        const akey=data.authors[0].key;
+        const resp2=await fetchConTimeout(`https://openlibrary.org${akey}.json`);
+        if(resp2.ok){
+          const autor=await resp2.json();
+          if(autor.name){
+            document.getElementById('fAutor').value=formatearAutorDesdeISBN(autor.name);
+            cargoAlgo = true;
+          }
+        }
+      }
+      if(cargoAlgo){
+        document.getElementById('isbnOk').style.display='block';
+        toast('✓ Datos cargados de Open Library');
+        return;
+      }
+    }
+  }catch(e){}
+
+  try {
+    const resp=await fetchConTimeout(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    if(resp.ok){
+      const data=await resp.json();
+      if(data.items&&data.items[0]){
+        const info=data.items[0].volumeInfo || {};
+        let cargoAlgo = false;
+        if(info.title){document.getElementById('fTitulo').value=info.title; cargoAlgo = true;}
+        if(info.authors&&info.authors[0]){document.getElementById('fAutor').value=formatearAutorDesdeISBN(info.authors[0]); cargoAlgo = true;}
+        if(info.publishedDate){document.getElementById('fFecha').value=info.publishedDate.split('-')[0]; cargoAlgo = true;}
+        if(info.publisher){document.getElementById('fEditorial').value=info.publisher; cargoAlgo = true;}
+        if(info.pageCount){document.getElementById('fPaginas').value=info.pageCount; cargoAlgo = true;}
+        if(cargoAlgo){
+          document.getElementById('isbnOk').style.display='block';
+          toast('✓ Datos cargados de Google Books');
+          return;
+        }
+      }
+    }
+  }catch(e){}
+  toast('No se encontraron datos para este ISBN',true);
+}
+
+// ── DITTO ──
+const DITTO_CAMPOS={
+  lugar:'fLugar',editorial:'fEditorial',fecha:'fFecha',encuadernacion:'fEncuadernacion',
+  estado:'fEstado',tamano:'fTamanoCm',sobrecubierta:'fSobrecubierta',idioma:'fIdioma',
+  localiz:'fLocaliz',materia:'fMateria',materia2:'fMateria2',precio_compra:'fPrecioCompra',
+  catalogo:'fCatalogo'
+};
+function copiarDeLast(campo,inputId){
+  if(!ultimoLibroGuardado||!ultimoLibroGuardado[campo])return;
+  document.getElementById(inputId).value=ultimoLibroGuardado[campo];
+  if(campo==='encuadernacion')actualizarAbebooks();
+  if(campo==='sobrecubierta')toggleEstadoSobrecubierta();
+}
+function configurarDittos(){
+  document.querySelectorAll('.btn-ditto').forEach(btn=>{
+    if(btn.onclick)return; // ya tiene onclick
+    btn.addEventListener('click',e=>{
+      e.preventDefault();
+      const campo=btn.dataset.campo;
+      if(!campo||!DITTO_CAMPOS[campo])return;
+      copiarDeLast(campo,DITTO_CAMPOS[campo]);
+    });
+  });
+}
+document.addEventListener('keydown',e=>{
+  if(!e.altKey||e.key.toLowerCase()!=='d')return;
+  const el=document.activeElement;
+  if(!el||el.tagName!=='INPUT')return;
+  const id=el.id;
+  const campo = Object.keys(DITTO_CAMPOS).find(k => DITTO_CAMPOS[k]===id);
+  if(!campo)return;
+  e.preventDefault();
+  copiarDeLast(campo,DITTO_CAMPOS[campo]);
+});
+
+// ── ENCUADERNACIÓN ABEBOOKS ──
+const ABEBOOKS_MAP={
+  'Rústica':'Tapa blanda','Rústica con solapas':'Tapa blanda',
+  'Editorial con solapas':'Tapa blanda','Cartoné':'Tapa dura',
+  'Tela editorial':'Tapa dura','Tela ed. estampada':'Tapa dura',
+  'Holandesa':'Tapa dura','Holandesa puntas':'Tapa dura','Pasta española':'Tapa dura'
+};
+function actualizarAbebooks() {
+  const val=document.getElementById('fEncuadernacion').value;
+  document.getElementById('fEncuadernacionAbebooks').value=ABEBOOKS_MAP[val]||'';
+}
+
+// ── AUTOR ──
+function formatearAutorDesdeISBN(autorRaw) {
+  if(!autorRaw) return '';
+  const primero=autorRaw.split(/,(?!\s*[a-z])/)[0].trim();
+  const palabras=primero.split(/\s+/).filter(Boolean);
+  if(palabras.length===1) return palabras[0].toUpperCase();
+  return `${palabras[palabras.length-1].toUpperCase()}, ${palabras.slice(0,-1).join(' ')}`;
+}
+function formatearAutor() {
+  const input=document.getElementById('fAutor');
+  const val=input.value.trim(); if(!val) return;
+  if(val.includes(',')) {
+    const p=val.split(',');
+    input.value=`${p[0].trim().toUpperCase()}, ${p.slice(1).join(',').trim()}`;
+  } else {
+    const w=val.split(/\s+/);
+    if(w.length===1){input.value=w[0].toUpperCase();return;}
+    input.value=`${w[w.length-1].toUpperCase()}, ${w.slice(0,-1).join(' ')}`;
+  }
+}
+
+// ── SOBRECUBIERTA ──
+function toggleEstadoSobrecubierta() {
+  document.getElementById('wrapEstadoSob').style.display=
+    document.getElementById('fSobrecubierta').value==='Con sobrecubierta'?'block':'none';
+}
+
+// ── GENERAR DESCRIPCIÓN ──
+function generarDescripcion() {
+  const enc    = document.getElementById('fEncuadernacion').value;
+  const est    = document.getElementById('fEstado').value;
+  const sob    = document.getElementById('fSobrecubierta').value;
+  const estSob = document.getElementById('fEstadoSobrecubierta').value;
+  const pEd    = document.getElementById('fPrimeraEdicion').checked;
+  const tamano = document.getElementById('fTamanoCm').value.trim();
+  const paginas= document.getElementById('fPaginas').value.trim();
+  const dedicat= document.getElementById('fDedicatoria').checked;
+  const firma  = document.getElementById('fFirmaAutor').checked;
+  const exlib  = document.getElementById('fExLibris').checked;
+
+  if(!enc&&!est) return toast('Rellena encuadernación y estado primero',true);
+
+  const partesId=[];
+  if(pEd)    partesId.push('Primera edición');
+  if(tamano) partesId.push(tamano.replace(/\.+$/,''));
+  if(paginas)partesId.push(paginas+' pp.');
+  const textoId=partesId.length?partesId.join('. ')+'.' :'';
+
+  const sinEn=['Cartoné','Holandesa','Holandesa puntas','Pasta española'];
+  const pref=sinEn.includes(enc)?'':' en';
+  const conSob=sob==='Con sobrecubierta'?' con sobrecubierta':'';
+  const textoEnc=enc?`Encuadernación${pref} ${enc.toLowerCase()}${conSob}.`:'';
+
+  const textoEst={
+    'Muy bien':   'Ejemplar en muy buen estado, sin nombres del anterior poseedor, ni subrayados, con apenas signos de uso.',
+    'Bien':       'Ejemplar en buen estado, con leves signos de uso propios del tiempo, interior limpio y sin marcas destacables.',
+    'Como nuevo': 'Ejemplar en estado como nuevo, prácticamente sin signos de uso.',
+    'Aceptable':  'Ejemplar en estado aceptable, con signos evidentes de uso aunque completo y legible.',
+    'Pobre':      'Ejemplar con signos importantes de uso y desgaste.',
+    'Nuevo':      'Ejemplar nuevo, sin uso.',
+  }[est]||'';
+
+  const marcas=[];
+  if(dedicat) marcas.push('Dedicatoria autógrafa del autor.');
+  if(firma)   marcas.push('Ejemplar firmado por el autor.');
+  if(exlib)   marcas.push('Presenta ex-libris o sello de anterior poseedor.');
+
+  let textoSob='';
+  if(sob==='Con sobrecubierta'){
+    textoSob={'Muy bien':'Conserva la sobrecubierta también en muy buen estado.',
+      'Bien':'Conserva la sobrecubierta en buen estado, con leves signos de uso.',
+      'Regular':'Conserva la sobrecubierta con signos de uso y pequeñas roturas en los márgenes; con todo, ha cumplido su función y preservado la encuadernación y el interior en muy buen estado.'
+    }[estSob]||'Conserva la sobrecubierta.';
+  }
+
+  document.getElementById('fDescripcion').value=
+    [textoId,textoEnc,textoEst,...marcas,textoSob].filter(Boolean).join(' ');
+  toast('Descripción generada — revísala antes de guardar');
+}
+
+const TAMANOS = ['8vo.','4to.','4to. mayor','Folio','Gran Folio','12mo.','24mo.'];
+
+function autocompleteInputFixed(input, campo) {
+  const val=input.value.trim().toLowerCase();
+  const listaId=campo+'Lista';
+  const lista=document.getElementById(listaId);
+  const fuente = campo==='tamano' ? TAMANOS : lugaresCache;
+  const filtrados = val
+    ? fuente.filter(v=>v.toLowerCase().includes(val)).slice(0,8)
+    : fuente.slice(0,8);
+  if(!filtrados.length){cerrarAc(listaId);return;}
+  lista.innerHTML=filtrados.map((v,i)=>
+    `<div class="ac-item" data-idx="${i}" onmousedown="selAc('${input.id}','${listaId}','${v.replace(/'/g,"\\'")}')">
+      ${v}</div>`).join('');
+  lista.classList.add('visible');
+}
+
+// ── AUTOCOMPLETE LUGAR ──
+async function cargarLugares() {
+  try {
+    const data=await apiFetch('/inventario?select=lugar&lugar=not.is.null&order=lugar');
+    lugaresCache=[...new Set((data||[]).map(l=>l.lugar).filter(Boolean))].sort();
+  } catch(e){}
+}
+function autocompleteInput(input,campo) {
+  const val=input.value.trim().toLowerCase();
+  const listaId=campo+'Lista';
+  const lista=document.getElementById(listaId);
+  const fuente = campo==='tamano' ? TAMANOS : lugaresCache;
+  if(!val){cerrarAc(listaId);return;}
+  const filtrados=fuente.filter(v=>v.toLowerCase().includes(val)).slice(0,8);
+  if(!filtrados.length){cerrarAc(listaId);return;}
+  lista.innerHTML=filtrados.map((v,i)=>
+    `<div class="ac-item" data-idx="${i}" onmousedown="selAc('${input.id}','${listaId}','${v.replace(/'/g,"\'")}')">
+      ${v}</div>`).join('');
+  lista.classList.add('visible');
+}
+
+function acKeydown(e, input, campo) {
+  const listaId=campo+'Lista';
+  const lista=document.getElementById(listaId);
+  if(!lista.classList.contains('visible')) return;
+  const items=lista.querySelectorAll('.ac-item');
+  if(!items.length) return;
+  let activo=lista.querySelector('.ac-item.ac-activo');
+  let idx=activo?parseInt(activo.dataset.idx):-1;
+
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    idx=Math.min(idx+1,items.length-1);
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    idx=Math.max(idx-1,0);
+  } else if(e.key==='Enter'&&activo){
+    e.preventDefault();
+    selAc(input.id,listaId,activo.textContent.trim());
+    return;
+  } else if(e.key==='Escape'){
+    cerrarAc(listaId); return;
+  } else { return; }
+
+  items.forEach(i=>i.classList.remove('ac-activo'));
+  items[idx].classList.add('ac-activo');
+  input.value=items[idx].textContent.trim();
+}
+
+function selAc(inputId,listaId,valor){
+  document.getElementById(inputId).value=valor; cerrarAc(listaId);
+}
+function cerrarAc(listaId){
+  const el=document.getElementById(listaId); if(el) el.classList.remove('visible');
+}
+
+// ── HELPERS ──
+function mostrarCargando(){
+  document.getElementById('tbodyInventario').innerHTML=
+    `<tr><td colspan="10"><div class="estado-carga"><div class="spinner"></div><br>Cargando...</div></td></tr>`;
+}
+function mostrarError(msg){
+  document.getElementById('tbodyInventario').innerHTML=
+    `<tr><td colspan="10"><div class="estado-carga" style="color:var(--rojo);">
+      ⚠️ Error de conexión<br><small>${msg}</small><br><br>
+      <button class="btn btn-sm" onclick="cargarInventario()">↺ Reintentar</button>
+    </div></td></tr>`;
+}
+
+// ── INICIO ──
+window.addEventListener('DOMContentLoaded', async () => {
+  cargarInventario();
+  cargarLugares();
+  configurarDittos();
+  await cargarComprasDisponibles();
+
+  const hash = window.location.hash;
+  if (hash.startsWith('#compra=')) {
+    const codigoCompra = decodeURIComponent(hash.substring(8));
+    const compra = comprasDisponibles.find(c => String(c.codigo || '').toLowerCase() === codigoCompra.toLowerCase());
+    if (compra) {
+      document.getElementById('fCompra').value = compra.codigo;
+      document.getElementById('fCompraId').value = compra.id;
+    }
+  }
+});
+</script>
+</body>
+</html>
