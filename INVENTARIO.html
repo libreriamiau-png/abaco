@@ -1003,30 +1003,76 @@ function rellenarDesdeISBN(d) {
     .filter(Boolean)
     .length;
 
-  const setAutorPreferente = (valor) => {
-    const el = document.getElementById('fAutor');
-    if (!el) return;
-    const nuevo = formatearAutorDesdeISBN(valor || '');
-    if (!nuevo) return;
+const setAutorPreferente = (valor) => {
+  const el = document.getElementById('fAutor');
+  if (!el) return;
 
-    const actual = String(el.value || '').trim();
-    if (!actual) {
-      el.value = nuevo;
+  const nuevo = formatearAutorDesdeISBN(valor || '');
+  if (!nuevo) return;
+
+  const actual = String(el.value || '').trim();
+
+  // Si no hay nada previo → usar directamente
+  if (!actual) {
+    el.value = nuevo;
+    return;
+  }
+
+  const totalActual = contarAutores(actual);
+  const totalNuevo = contarAutores(nuevo);
+
+  // REGLA 1: Más autores siempre gana
+  if (totalNuevo > totalActual) {
+    el.value = nuevo;
+    return;
+  }
+
+  // REGLA 2: Mismo número de autores → comparar contenido
+  if (totalNuevo === totalActual) {
+
+    const extraerApellidos = (str) =>
+      str
+        .split(/\s*\/\s*/)
+        .map(a => a.split(',')[0]?.trim().toUpperCase())
+        .filter(Boolean);
+
+    const apellidosActuales = extraerApellidos(actual);
+    const apellidosNuevos = extraerApellidos(nuevo);
+
+    // Comparación robusta SIN importar orden
+    const setActual = new Set(apellidosActuales);
+    const setNuevo = new Set(apellidosNuevos);
+
+    const sonDiferentes =
+      setActual.size !== setNuevo.size ||
+      [...setActual].some(a => !setNuevo.has(a));
+
+    // Combinar autores si son diferentes
+    if (sonDiferentes) {
+      const autoresActuales = actual.split(/\s*\/\s*/);
+      const autoresNuevos = nuevo.split(/\s*\/\s*/);
+
+      const apellidosVistos = new Set();
+      const combinados = [];
+
+      [...autoresActuales, ...autoresNuevos].forEach(autor => {
+        const apellido = autor.split(',')[0]?.trim().toUpperCase();
+        if (apellido && !apellidosVistos.has(apellido)) {
+          apellidosVistos.add(apellido);
+          combinados.push(autor.trim());
+        }
+      });
+
+      el.value = combinados.join(' / ');
       return;
     }
 
-    const totalActual = contarAutores(actual);
-    const totalNuevo = contarAutores(nuevo);
-
-    if (totalNuevo > totalActual) {
-      el.value = nuevo;
-      return;
-    }
-
-    if (totalNuevo === totalActual && nuevo.length > actual.length) {
+    // Si son iguales → elegir el más completo
+    if (nuevo.length > actual.length) {
       el.value = nuevo;
     }
-  };
+  }
+};
 
   const tituloCompleto = [d.titulo, d.subtitulo].filter(Boolean).join(': ');
   setIfEmpty('fTitulo', tituloCompleto || d.titulo);
