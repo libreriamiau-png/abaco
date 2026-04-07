@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test ISBN</title>
+</head>
+<body>
+  <h1>Test ISBN</h1>
+
+  <label for="isbn">ISBN</label>
+  <input type="text" id="isbn" value="9781234567890">
+  <button id="buscarBtn">Probar función</button>
+
+  <pre id="resultado">Sin ejecutar</pre>
+
+  <script>
+    document.getElementById('buscarBtn').addEventListener('click', async () => {
+      const isbn = document.getElementById('isbn').value.trim()
+      const resultado = document.getElementById('resultado')
+      resultado.textContent = 'Consultando...'
+
+      try {
+        const res = await fetch('https://ohlrldyobyxurnkwheli.supabase.co/functions/v1/isbn_test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isbn })
+        })
+
+        const data = await res.json()
+        resultado.textContent = JSON.stringify(data, null, 2)
+      } catch (err) {
+        resultado.textContent = 'Error: ' + err.message
+      }
+    })
+  </script>
+</body>
+</html>
