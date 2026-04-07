@@ -27,21 +27,35 @@ let cameraActive = false;
 // --- Inicialización ---
 
 async function init() {
-  registerNetworkListeners();
-  startAutoSync(10_000);
+  // Estado inicial seguro de UI
+  snapBtn.disabled = true;
+  photoCount.textContent = `${getPhotos().length}/3`;
 
-  onSyncUpdate(handleSyncEvent);
-
-  await restoreDraft();
-  await refreshPendingBadge();
-
-  // Eventos
+  // Registrar eventos ANTES de cualquier await
   startCamBtn.addEventListener('click', toggleCamera);
   snapBtn.addEventListener('click', onSnap);
   fileInput.addEventListener('change', onFileSelect);
   form.addEventListener('submit', onSubmit);
   form.addEventListener('input', debounceDraft());
   syncBtn.addEventListener('click', () => runSync());
+
+  registerNetworkListeners();
+  startAutoSync(10_000);
+  onSyncUpdate(handleSyncEvent);
+
+  try {
+    await restoreDraft();
+  } catch (err) {
+    console.warn('[init] restoreDraft falló:', err);
+    setStatus('No se pudo cargar el borrador local', 'warn');
+  }
+
+  try {
+    await refreshPendingBadge();
+  } catch (err) {
+    console.warn('[init] refreshPendingBadge falló:', err);
+    pendingBadge.hidden = true;
+  }
 }
 
 // --- Cámara ---
@@ -63,9 +77,13 @@ async function toggleCamera() {
     startCamBtn.textContent = 'Cerrar cámara';
     updatePhotoCount(); // habilita snapBtn si hay hueco para más fotos
     setStatus('Cámara activa', 'info');
-  } catch (err) {
-    setStatus('No se pudo acceder a la cámara: ' + err.message, 'error');
-  }
+} catch (err) {
+  cameraActive = false;
+  cameraSection.classList.add('hidden');
+  startCamBtn.textContent = 'Abrir cámara';
+  snapBtn.disabled = true;
+  setStatus('No se pudo acceder a la cámara: ' + err.message, 'error');
+}
 }
 
 async function onSnap() {
