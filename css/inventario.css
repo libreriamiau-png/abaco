@@ -1,0 +1,397 @@
+/* ============================================
+   LIBROS BOSCH - INVENTARIO CSS
+   Estilos específicos para inventario
+   ============================================ */
+
+/* === BÚSQUEDA RÁPIDA === */
+.busqueda-rapida {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.busqueda-rapida input {
+  flex: 1;
+  min-width: 250px;
+}
+
+.contador-libros {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* === ISBN === */
+.isbn-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-end;
+}
+
+.isbn-row input {
+  flex: 1;
+}
+
+.btn-isbn {
+  padding: 8px 14px;
+  background: var(--negro);
+  color: white;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--dorado);
+  transition: background 0.15s;
+}
+
+.btn-isbn:hover {
+  background: var(--oscuro);
+}
+
+.btn-isbn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.isbn-ok {
+  grid-column: span 3;
+  background: #e8f5e9;
+  border-left: 3px solid var(--verde);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.85rem;
+  color: var(--verde);
+  display: none;
+}
+
+.isbn-alerta {
+  grid-column: span 3;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.85rem;
+  color: #b45309;
+  display: none;
+}
+
+/* === CARACTERÍSTICAS ESPECIALES === */
+.checkboxes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+}
+
+/* === TABLA - CELDAS PERSONALIZADAS === */
+.td-stock {
+  font-weight: 700;
+  color: var(--dorado);
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.td-titulo {
+  max-width: 300px;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.td-autor {
+  color: var(--medio);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.td-tipo {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  background: #eee;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+
+.td-precio {
+  font-weight: 700;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.td-estado {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.est-bien {
+  background: #e8f5e9;
+  color: #2d6a4f;
+}
+
+.est-regular {
+  background: #fff3e0;
+  color: #c8640a;
+}
+
+.est-malo {
+  background: #fce4e4;
+  color: #b33a2a;
+}
+
+/* === ACCIONES === */
+.acciones {
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* === PAGINACIÓN === */
+.paginacion {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.paginacion-info {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.btn-pag {
+  padding: 5px 12px;
+  border: 1px solid var(--borde);
+  background: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.btn-pag:hover {
+  border-color: var(--dorado);
+  color: var(--dorado);
+}
+
+.btn-pag:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* === CHECKBOXES DE TABLA === */
+.table th:first-child,
+.table td:first-child {
+  width: 44px;
+  min-width: 44px;
+  text-align: center;
+}
+
+.checkbox-libro,
+#checkboxSelectAll {
+  appearance: auto !important;
+  -webkit-appearance: checkbox !important;
+  width: 16px !important;
+  height: 16px !important;
+  accent-color: var(--dorado);
+  cursor: pointer;
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* === BARRA DE ACCIONES MASIVAS === */
+.acciones-masivas {
+  background: #fff8f0;
+  border: 2px solid var(--dorado);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  border-radius: 4px;
+}
+
+.acciones-masivas.visible {
+  display: flex;
+}
+
+.acciones-masivas-info {
+  font-weight: 700;
+  color: var(--dorado);
+  font-size: 0.9rem;
+}
+
+.acciones-masivas-botones {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* === MODAL VER LIBRO === */
+.detalle-libro {
+  max-width: 500px;
+}
+
+.detalle-libro h2 {
+  margin-top: 0;
+  color: var(--dorado);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--borde);
+}
+
+.detalle-stock {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.detalle-autor {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--negro);
+  margin-bottom: 4px;
+}
+
+.detalle-titulo {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--oscuro);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.4;
+}
+
+.detalle-seccion {
+  margin-bottom: var(--spacing-md);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.detalle-seccion strong {
+  color: var(--medio);
+  font-weight: 700;
+}
+
+.detalle-precio {
+  background: #f8f9fa;
+  padding: var(--spacing-md);
+  border-radius: 4px;
+  margin: var(--spacing-lg) 0;
+  text-align: center;
+}
+
+.detalle-precio-valor {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dorado);
+}
+
+.detalle-botones {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--borde);
+}
+
+/* === BUSCADOR AVANZADO === */
+.buscador-avanzado {
+  background: #f8f9fa;
+  border: 2px solid var(--borde);
+  border-radius: 4px;
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.buscador-avanzado h3 {
+  color: var(--negro);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.filtros-avanzados {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.filtros-avanzados.visible {
+  max-height: 2000px;
+}
+
+.seccion-filtros {
+  margin-bottom: var(--spacing-lg);
+}
+
+.seccion-filtros h4 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--medio);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.3px;
+}
+
+.grid-filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.campo-filtro label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: none;
+  color: var(--negro);
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* === LOGIN === */
+#panelLogin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--fondo);
+}
+
+.login-box {
+  background: white;
+  padding: 32px;
+  border-top: 3px solid var(--dorado);
+  border: 1px solid var(--borde);
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-box h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.login-box p {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-xl);
+}
+
+.login-error {
+  display: none;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: #fce4e4;
+  border-left: 3px solid var(--rojo);
+  font-size: 0.85rem;
+  color: var(--rojo);
+}

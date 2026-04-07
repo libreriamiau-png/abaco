@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 Inventario — Libros Bosch</title>
+  
+  <!-- CSS Compartido -->
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/inventario.css">
+  <link rel="stylesheet" href="css/print.css" media="print">
+</head>
+<body>
+<!-- PANEL DE LOGIN -->
+<div id="panelLogin" style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--fondo);">
+  <div style="background:white; padding:40px; border-top:3px solid var(--dorado); border:1px solid var(--borde); width:100%; max-width:380px;">
+    <h2 style="font-size:1.3rem; font-weight:700; margin-bottom:6px;">📚 Libros Bosch</h2>
+    <p style="color:var(--muted); font-size:.9rem; margin-bottom:28px;">Acceso al sistema de inventario</p>
+    <div style="margin-bottom:16px;">
+      <label style="display:block; font-size:.78rem; font-weight:700; text-transform:uppercase; margin-bottom:4px;">Email</label>
+      <input type="email" id="loginEmail" style="width:100%; padding:10px 12px; border:1px solid var(--borde); font-size:.95rem;">
+    </div>
+    <div style="margin-bottom:24px;">
+      <label style="display:block; font-size:.78rem; font-weight:700; text-transform:uppercase; margin-bottom:4px;">Contraseña</label>
+      <input type="password" id="loginPassword" style="width:100%; padding:10px 12px; border:1px solid var(--borde); font-size:.95rem;" onkeydown="if(event.key==='Enter') iniciarSesion()">
+    </div>
+    <button onclick="iniciarSesion()" style="width:100%; padding:11px; background:var(--dorado); color:white; border:none; font-size:.95rem; font-weight:700; cursor:pointer;">Entrar</button>
+    <div id="loginError" style="display:none; margin-top:14px; padding:10px; background:#fce4e4; border-left:3px solid var(--rojo); font-size:.88rem; color:var(--rojo);"></div>
+  </div>
+</div>
+<div id="appContenido" style="display:none;">
+<div class="header">
+  <h1>📚 Inventario — Libros Bosch</h1>
+  <p>Gestión de fondos · Sevilla</p>
+  <nav class="header-nav">
+    <a href="#" class="activo" onclick="event.preventDefault(); mostrarPanel('inventario', this)">📋 Inventario</a>
+    <a href="#" onclick="event.preventDefault(); mostrarPanel('buscador', this)">🔍 Buscador avanzado</a>
+    <a href="#" onclick="event.preventDefault(); mostrarPanel('lotes', this)">📦 Edición en lote</a>
+    <a href="clientes.html">👤 Clientes</a>
+    <a href="abaco.html">📚 Ábaco</a>
+  </nav>
+</div>
+
+<!-- PANEL DE INVENTARIO -->
+<div id="panelInventario" style="display: block;">
+  <div class="dashboard-grid">
+    <div class="stat-card">
+      <div class="label">Total fondos</div>
+      <div class="value" id="statTotal">—</div>
+      <div class="trend">registros</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Último stock</div>
+      <div class="value" id="statUltimo">—</div>
+      <div class="trend">número más alto</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Sin precio</div>
+      <div class="value" id="statSinPrecio">—</div>
+      <div class="trend">a revisar</div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO -->
+  <div class="card" id="cardFormulario">
+    <div class="card-title">
+      <div class="card-title-left">
+        <span id="formTituloLabel">📝 Nuevo libro</span>
+        <span class="badge">ficha</span>
+      </div>
+      <button class="btn btn-sm" onclick="limpiarFormulario()">✕ Cancelar</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab activa" onclick="cambiarTab('principal',this)">📋 Principal</div>
+      <div class="tab" onclick="cambiarTab('avanzado',this)">🔬 Avanzado</div>
+    </div>
+
+    <div class="tab-panel visible" id="tab-principal">
+      <div class="form-grid">
+        <div class="form-section">🔍 ISBN</div>
+        <div class="span2">
+          <label>ISBN</label>
+          <div class="isbn-row">
+            <input type="text" id="fIsbn" placeholder="978-84-..." oninput="handleIsbnInput()">
+            <button class="btn-isbn" onclick="buscarISBN()" id="btnBuscarIsbn">🔍 Buscar ISBN</button>
+          </div>
+        </div>
+        <div>
+          <label>Nº Stock</label>
+          <input type="number" id="fStockNo" placeholder="Automático" readonly>
+        </div>
+        <div class="isbn-ok span3" id="isbnResultado"></div>
+        <div class="isbn-alerta span3" id="isbnAlerta"></div>
+
+        <div class="form-section">📖 Datos bibliográficos</div>
+        <div class="span2">
+          <label>Autor</label>
+          <input type="text" id="fAutor" placeholder="Apellido, Nombre" onblur="formatearAutor()">
+        </div>
+        <div>
+          <label>Tipo</label>
+          <select id="fTipo">
+            <option selected>Libro</option>
+            <option>Fotografía</option>
+            <option>Grabado</option>
+            <option>Postal</option>
+            <option>Mapa</option>
+            <option>Manuscrito</option>
+            <option>Revista</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="span3">
+          <label>Título</label>
+          <input type="text" id="fTitulo" placeholder="Título completo del libro">
+        </div>
+        <div>
+          <label>Lugar de publicación</label>
+          <input type="text" id="fLugar" placeholder="Madrid, Barcelona...">
+        </div>
+        <div>
+          <label>Editorial</label>
+          <input type="text" id="fEditorial" placeholder="Alianza, Crítica...">
+        </div>
+        <div>
+          <label>Fecha de edición</label>
+          <input type="text" id="fFecha" placeholder="1986">
+        </div>
+
+        <div class="form-section">📐 Descripción física</div>
+        <div>
+          <label>Encuadernación</label>
+          <select id="fEncuadernacion">
+            <option value="">— —</option>
+            <option>Rústica</option>
+            <option>Rústica con solapas</option>
+            <option>Cartoné</option>
+            <option>Tela editorial</option>
+            <option>Holandesa</option>
+            <option>Pasta española</option>
+          </select>
+        </div>
+        <div>
+          <label>Estado</label>
+          <select id="fEstado">
+            <option selected>Muy bien</option>
+            <option>Bien</option>
+            <option>Como nuevo</option>
+            <option>Aceptable</option>
+            <option>Pobre</option>
+            <option>Nuevo</option>
+          </select>
+        </div>
+        <div>
+          <label>Tamaño (cm)</label>
+          <input type="text" id="fTamanoCm" placeholder="21 x 15">
+        </div>
+        <div>
+          <label>Páginas</label>
+          <input type="number" id="fPaginas" placeholder="350">
+        </div>
+        <div>
+          <label>Sobrecubierta</label>
+          <select id="fSobrecubierta" onchange="toggleEstadoSobrecubierta()">
+            <option>Sin sobrecubierta</option>
+            <option>Con sobrecubierta</option>
+          </select>
+        </div>
+        <div id="wrapEstadoSobrecubierta" style="display:none;">
+          <label>Estado sobrecubierta</label>
+          <select id="fEstadoSobrecubierta">
+            <option selected>Bien</option>
+            <option>Muy bien</option>
+            <option>Como nueva</option>
+            <option>Aceptable</option>
+            <option>Pobre</option>
+          </select>
+        </div>
+
+        <div class="form-section">✨ Características especiales</div>
+        <div class="span3">
+          <div class="flex">
+            <div class="checkrow">
+              <input type="checkbox" id="fPrimeraEdicion">
+              <label for="fPrimeraEdicion">Primera edición</label>
+            </div>
+            <div class="checkrow">
+              <input type="checkbox" id="fDedicatoria">
+              <label for="fDedicatoria">Dedicatoria</label>
+            </div>
+            <div class="checkrow">
+              <input type="checkbox" id="fFirmaAutor">
+              <label for="fFirmaAutor">Firma del autor</label>
+            </div>
+            <div class="checkrow">
+              <input type="checkbox" id="fExLibris">
+              <label for="fExLibris">Ex-libris</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">🗂️ Clasificación</div>
+        <div>
+          <label>Materia</label>
+          <input type="text" id="fMateria" placeholder="Historia, Literatura...">
+        </div>
+        <div>
+          <label>Materia 2</label>
+          <input type="text" id="fMateria2" placeholder="Subtema opcional">
+        </div>
+        <div>
+          <label>Idioma</label>
+          <select id="fIdioma">
+            <option selected>Español</option>
+            <option>Catalán</option>
+            <option>Gallego</option>
+            <option>Euskera</option>
+            <option>Inglés</option>
+            <option>Francés</option>
+            <option>Italiano</option>
+            <option>Alemán</option>
+            <option>Portugués</option>
+            <option>Latín</option>
+            <option>Otro</option>
+          </select>
+        </div>
+
+        <div class="form-section">📦 Inventario</div>
+        <div>
+          <label>Localización</label>
+          <input type="text" id="fLocaliz" placeholder="Estantería, pasillo...">
+        </div>
+        <div>
+          <label>Cantidad</label>
+          <input type="number" id="fCantidad" ... min="0">
+        </div>
+        <div>
+          <label>Publicar online</label>
+          <select id="fPublicarOnline">
+            <option value="true" selected>Sí</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+        <div class="span3">
+          <div style="display:flex;justify-content:space-between;align-items:center;"><label>Descripción del ejemplar</label><button type="button" class="btn btn-sm" onclick="generarDescripcion()">✨ Generar descripción</button></div>
+          <textarea id="fDescripcion" placeholder="Detalles adicionales del ejemplar..."></textarea>
+        </div>
+
+        <div class="form-section">💰 Económico</div>
+        <div>
+          <label>Precio de venta (€)</label>
+          <input type="text" id="fPrecio" placeholder="25.50">
+        </div>
+        <div class="solo-admin">
+          <label>Precio de compra (€)</label>
+          <input type="text" id="fPrecioCompra" placeholder="15.00">
+        </div>
+        <div class="span3">
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div>
+      <label>Fecha de alta</label>
+      <input type="text" id="fFechaAlta" readonly placeholder="Automática" style="background:#f7f7f7;">
+    </div>
+    <div>
+      <label>Última modificación</label>
+      <input type="text" id="fFechaModificacion" readonly placeholder="—" style="background:#f7f7f7;">
+    </div>
+  </div>
+</div>
+
+        <div class="form-section">📋 Notas y procedencia</div>
+        <div class="span2">
+          <label>Procedencia / Compra</label>
+          <input type="text" id="fProcedencia" placeholder="Lote X, Compra del 15/03...">
+        </div>
+        <div>
+          <label>ID Compra</label>
+          <input type="number" id="fCompraId" placeholder="Opcional">
+        </div>
+        <div class="span3">
+          <label>Notas privadas</label>
+          <textarea id="fNotas" placeholder="Notas internas..."></textarea>
+        </div>
+
+        <div class="span3 mt-3">
+          <button class="btn btn-primary" id="btnGuardar" onclick="guardarLibro()">💾 Guardar libro</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-avanzado">
+      <div class="form-grid">
+        <div class="span3">
+          <p style="color:var(--muted);font-size:.9rem;margin-bottom:14px;">
+            Campos adicionales para catalogación avanzada
+          </p>
+        </div>
+
+        <div>
+          <label>Catálogo</label>
+          <input type="text" id="fCatalogo" placeholder="Ej: Catálogo 2024">
+        </div>
+        <div>
+          <label>Encuadernación AbeBooks</label>
+          <select id="fEncuadernacionAbebooks">
+            <option value="">— —</option>
+            <option>Hardcover</option>
+            <option>Softcover</option>
+            <option>Leather Bound</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA DE LIBROS -->
+  <div class="card">
+    <div class="card-title">
+      <div class="card-title-left">
+        📚 Libros registrados
+        <span class="badge" id="contadorLibros">0</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <input type="text" id="busqueda" placeholder="Buscar por título, autor, ISBN..." oninput="buscar()">
+      </div>
+      <button class="btn btn-sm" onclick="limpiarBusqueda()">✕ Limpiar</button>
+      
+      <!-- Badge de selección -->
+      <span class="badge" id="badgeSeleccion" style="display:none; margin-left: 10px;"></span>
+      
+      <!-- Botones de exportación -->
+      <div id="botonesExportacion" style="display:none; gap:8px; margin-left: auto; align-items: center;">
+        <button class="btn btn-primary" onclick="exportarAbeBooks()">📤 Exportar AbeBooks/TC</button>
+        <button class="btn btn-primary" onclick="exportarLibrosBosch()">📤 Exportar LibrosBosch</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="checkboxSelectAll" onclick="toggleSeleccionTodos()"></th>
+<th>#</th>
+            <th>Stock</th>
+            <th>Título</th>
+            <th>Autor</th>
+            <th>Tipo</th>
+            <th>Precio</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyInventario"></tbody>
+      </table>
+    </div>
+
+    <div class="paginacion">
+      <span class="paginacion-info" id="paginacionInfo"></span>
+      <div class="flex">
+        <button class="btn-pag" id="btnAnterior" onclick="cambiarPagina(-1)">← Anterior</button>
+        <button class="btn-pag" id="btnSiguiente" onclick="cambiarPagina(1)">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL DE BUSCADOR AVANZADO -->
+<div id="panelBuscador" style="display: none;">
+  <div class="card">
+    <div class="card-title">
+      <div class="card-title-left">
+        🔍 Buscador avanzado
+        <span class="badge">búsqueda tipo AND</span>
+      </div>
+    </div>
+
+    <div class="buscador-container">
+      <!-- BÚSQUEDA RÁPIDA (siempre visible) -->
+      <div class="busqueda-rapida">
+        <h3>🔍 Búsqueda rápida</h3>
+        
+        
+        <div class="campos-rapidos">
+          <div class="campo-filtro">
+            <label>Autor</label>
+            <input type="text" id="bAutor" placeholder="Ej: García, Tolstoi...">
+          </div>
+          <div class="campo-filtro">
+            <label>Título</label>
+            <input type="text" id="bTitulo" placeholder="Ej: Cien años, Quijote...">
+          </div>
+          <div class="campo-filtro">
+            <label>Materia</label>
+            <input type="text" id="bMateria" placeholder="Ej: Andalucía - Cádiz">
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-primary" onclick="ejecutarBusqueda()">🔍 Buscar</button>
+          <button class="btn btn-sm" onclick="limpiarBusquedaCompleta()">✕ Limpiar todo</button>
+		  <button class="btn-toggle-avanzado" onclick="toggleFiltrosAvanzados()">
+            ⚙️ Más filtros <span id="iconoAvanzado">▼</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTROS AVANZADOS (colapsable) -->
+      <div class="filtros-avanzados" id="filtrosAvanzados">
+        
+        <!-- ISBN y Stock -->
+        <div class="seccion-filtros">
+          <h4>🔍 ISBN y Stock</h4>
+          <div class="grid-filtros">
+            <div class="campo-filtro">
+              <label>ISBN</label>
+              <input type="text" id="bIsbn" placeholder="978-84-...">
+            </div>
+            <div class="campo-filtro">
+              <label>Nº Stock (exacto)</label>
+              <input type="number" id="bStockNo" placeholder="22520">
+            </div>
+          </div>
+        </div>
+
+        <!-- Datos bibliográficos -->
+        <div class="seccion-filtros">
+          <h4>📖 Datos bibliográficos</h4>
+          <div class="grid-filtros">
+            <div class="campo-filtro">
+              <label>Tipo</label>
+              <select id="bTipo">
+                <option value="">-- Todos --</option>
+                <option>Libro</option>
+                <option>Fotografía</option>
+                <option>Grabado</option>
+                <option>Postal</option>
+                <option>Mapa</option>
+                <option>Manuscrito</option>
+                <option>Revista</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="campo-filtro">
+              <label>Lugar de publicación</label>
+              <input type="text" id="bLugar" placeholder="Madrid, Barcelona...">
+            </div>
+            <div class="campo-filtro">
+              <label>Editorial</label>
+              <input type="text" id="bEditorial" placeholder="Alianza, Crítica...">
+            </div>
+            <div class="campo-filtro">
+              <label>Fecha de edición</label>
+              <input type="text" id="bFecha" placeholder="1986, 198...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Descripción física -->
+        <div class="seccion-filtros">
+          <h4>📐 Descripción física</h4>
+          <div class="grid-filtros">
+            <div class="campo-filtro">
+              <label>Encuadernación</label>
+              <select id="bEncuadernacion">
+                <option value="">-- Todas --</option>
+                <option>Rústica</option>
+                <option>Rústica con solapas</option>
+                <option>Cartoné</option>
+                <option>Tela editorial</option>
+                <option>Holandesa</option>
+                <option>Pasta española</option>
+              </select>
+            </div>
+            <div class="campo-filtro">
+              <label>Estado</label>
+              <select id="bEstado">
+                <option value="">-- Todos --</option>
+                <option>Muy bien</option>
+                <option>Bien</option>
+                <option>Como nuevo</option>
+                <option>Aceptable</option>
+                <option>Pobre</option>
+                <option>Nuevo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Características especiales -->
+        <div class="seccion-filtros">
+          <h4>✨ Características especiales</h4>
+          <div class="checkboxes-especiales">
+            <div class="checkrow">
+              <input type="checkbox" id="bPrimeraEdicion">
+              <label for="bPrimeraEdicion">Primera edición</label>
+            </div>
+            <div class="checkrow">
+              <input type="checkbox" id="bDedicatoria">
+              <label for="bDedicatoria">Dedicatoria</label>
+            </div>
+            <div class="checkrow">
+              <input type="checkbox" id="bFirmaAutor">
+              <label for="bFirmaAutor">Firma del autor</label>
+            </div>
+            <div class="checkrow">
+              <input type="checkbox" id="bExLibris">
+              <label for="bExLibris">Ex-libris</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clasificación -->
+        <div class="seccion-filtros">
+          <h4>🗂️ Clasificación</h4>
+          <div class="grid-filtros">
+            <div class="campo-filtro">
+              <label>Submateria</label>
+              <input type="text" id="bMateria2" placeholder="Urbanismo, Historia...">
+            </div>
+            <div class="campo-filtro">
+              <label>Idioma</label>
+              <select id="bIdioma">
+                <option value="">-- Todos --</option>
+                <option>Español</option>
+                <option>Catalán</option>
+                <option>Gallego</option>
+                <option>Euskera</option>
+                <option>Inglés</option>
+                <option>Francés</option>
+                <option>Italiano</option>
+                <option>Alemán</option>
+                <option>Portugués</option>
+                <option>Latín</option>
+                <option>Otro</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inventario -->
+<div class="seccion-filtros">
+  <h4>📦 Inventario</h4>
+  <div class="grid-filtros">
+    <div class="campo-filtro">
+      <label>Localización</label>
+      <input type="text" id="bLocaliz" placeholder="Estantería, pasillo...">
+    </div>
+    <div class="campo-filtro">
+      <label>Cantidad (exacta)</label>
+      <input type="number" id="bCantidad" placeholder="1, 2, 3...">
+    </div>
+    <div class="campo-filtro">
+      <label>Publicar online</label>
+      <select id="bPublicarOnline">
+        <option value="">-- Todos --</option>
+        <option value="true">Sí</option>
+        <option value="false">No</option>
+      </select>
+    </div>
+  </div>
+  
+    <div style="margin-top:10px;">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" id="bIncluirArchivados">
+      <span>Incluir archivados (cantidad = 0)</span>
+    </label>
+  </div>
+
+  <div class="grid-filtros" style="margin-top:12px;">
+    <div class="campo-filtro">
+      <label>Fecha de alta desde</label>
+      <input type="date" id="bFechaAltaDesde">
+    </div>
+    <div class="campo-filtro">
+      <label>Fecha de alta hasta</label>
+      <input type="date" id="bFechaAltaHasta">
+    </div>
+    <div></div>
+  </div>
+</div>
+
+        <!-- Económico -->
+        <div class="seccion-filtros">
+          <h4>💰 Económico</h4>
+          <div class="grid-filtros-2">
+            <div class="campo-filtro">
+              <label>Precio de venta</label>
+              <div class="rango-precio">
+                <input type="number" id="bPrecioDesde" placeholder="Desde €" step="0.01">
+                <input type="number" id="bPrecioHasta" placeholder="Hasta €" step="0.01">
+              </div>
+            </div>
+            <div class="campo-filtro solo-admin">
+              <label>Precio de compra</label>
+              <div class="rango-precio">
+                <input type="number" id="bPrecioCompraDesde" placeholder="Desde €" step="0.01">
+                <input type="number" id="bPrecioCompraHasta" placeholder="Hasta €" step="0.01">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Otros -->
+        <div class="seccion-filtros">
+          <h4>📋 Otros campos</h4>
+          <div class="grid-filtros">
+            <div class="campo-filtro">
+              <label>Procedencia</label>
+              <input type="text" id="bProcedencia" placeholder="Lote X, Compra...">
+            </div>
+            <div class="campo-filtro">
+              <label>ID Compra</label>
+              <input type="number" id="bCompraId" placeholder="123">
+            </div>
+            <div class="campo-filtro">
+              <label>Catálogo</label>
+              <input type="text" id="bCatalogo" placeholder="Catálogo 2024">
+            </div>
+            <div class="campo-filtro">
+              <label>Encuadernación AbeBooks</label>
+              <select id="bEncuadernacionAbebooks">
+                <option value="">-- Todas --</option>
+                <option>Hardcover</option>
+                <option>Softcover</option>
+                <option>Leather Bound</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-filtros" style="margin-top: 12px;">
+            <div class="campo-filtro">
+              <label>Descripción del ejemplar</label>
+              <input type="text" id="bDescripcion" placeholder="Detalles del ejemplar...">
+            </div>
+            <div class="campo-filtro">
+              <label>Notas privadas</label>
+              <input type="text" id="bNotas" placeholder="Notas internas...">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div id="contenedorResultados" style="display: none;">
+<div class="contador-resultados" id="contadorResultados">
+  0 libros encontrados
+</div>
+
+<div style="margin: 12px 0;">
+  <button class="btn btn-primary" id="btnImprimirResultados" onclick="imprimirResultadosBusqueda()" style="display: none;">
+    🖨️ Generar PDF para cliente
+  </button>
+</div>
+
+<div class="resultado-busqueda" id="resultadoBusqueda"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PANEL DE EDICIÓN EN LOTE -->
+<div id="panelLotes" style="display: none;">
+  <div class="card">
+    <div class="card-title">
+      <div class="card-title-left">
+        📦 Edición en lote
+        <span class="badge">actualización masiva</span>
+      </div>
+    </div>
+
+    <div class="buscador-avanzado">
+      <h3>1️⃣ Selecciona qué libros editar:</h3>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display:block; margin-bottom:12px; font-weight:600;">Tipo de búsqueda</label>
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="tipoBusquedaLote" value="stock" checked onchange="cambiarTipoBusquedaLote()">
+            <span>📋 Por números de stock</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="tipoBusquedaLote" value="materia" onchange="cambiarTipoBusquedaLote()">
+            <span>🏷️ Por materia</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="tipoBusquedaLote" value="todo" onchange="cambiarTipoBusquedaLote()">
+            <span>🌐 Todo el catálogo</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Opción: Por números de stock -->
+      <div id="opcionStock" style="margin-bottom: 20px;">
+        <label style="display:block; margin-bottom:8px; font-weight:600;">Números de stock</label>
+        <textarea 
+          id="lotesInput" 
+          placeholder="Ejemplo: 22520 22333 22585 12555"
+          style="width:100%; min-height:100px; padding:12px; font-size:14px; border:2px solid var(--borde); border-radius:4px; font-family:monospace;"
+        ></textarea>
+        <div style="margin-top:8px; font-size:0.85rem; color:var(--muted);">
+          💡 Pega los números separados por espacios. Ejemplo: 22520 22333 22585
+        </div>
+      </div>
+
+      <!-- Opción: Por materia -->
+      <div id="opcionMateria" style="display:none; margin-bottom: 20px;">
+        <label style="display:block; margin-bottom:8px; font-weight:600;">Materia</label>
+        <input 
+          type="text" 
+          id="lotesMateria" 
+          placeholder="Ejemplo: Semana Santa, Andalucía, Historia..."
+          style="width:100%; padding:12px; font-size:14px; border:2px solid var(--borde); border-radius:4px;"
+        >
+        <div style="margin-top:8px; font-size:0.85rem; color:var(--muted);">
+          💡 Busca todos los libros de una materia específica
+        </div>
+      </div>
+
+      <!-- Opción: Todo el catálogo -->
+      <div id="opcionTodo" style="display:none; margin-bottom: 20px;">
+        <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:15px; border-radius:4px;">
+          <strong>⚠️ Atención:</strong> Esto cargará TODOS los libros del catálogo. Puede tardar unos segundos.
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" onclick="buscarLotes()">🔍 Buscar libros</button>
+      <button class="btn btn-sm" onclick="limpiarLotes()">✕ Limpiar</button>
+    </div>
+
+    <!-- Resultados de búsqueda -->
+    <div id="lotesResultados" style="display:none; margin-top:30px;">
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            📚 Libros encontrados
+            <span class="badge" id="lotesContador">0 libros</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto; margin-bottom:20px;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Nº Stock</th>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>Precio actual</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="lotesTabla">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="buscador-avanzado">
+          <h3>2️⃣ Elige la acción a realizar:</h3>
+          <div style="margin-bottom:20px;">
+            <label style="display:block; margin-bottom:8px; font-weight:600;">Acción</label>
+            <select id="lotesAccion" style="width:100%; padding:10px; font-size:14px; border:2px solid var(--borde); border-radius:4px;" onchange="toggleLotesOpciones()">
+              <option value="">— Selecciona una acción —</option>
+              <option value="descuento">📉 Aplicar descuento (%)</option>
+              <option value="vendido">✅ Marcar como vendido (cantidad = 0)</option>
+            </select>
+          </div>
+
+          <!-- Opciones para descuento -->
+          <div id="lotesOpcionDescuento" style="display:none; margin-bottom:20px;">
+            <label style="display:block; margin-bottom:8px; font-weight:600;">Porcentaje de descuento</label>
+            <input 
+              type="number" 
+              id="lotesDescuento" 
+              placeholder="Ej: 10 (para 10%)"
+              min="1"
+              max="100"
+              style="width:200px; padding:10px; font-size:14px; border:2px solid var(--borde); border-radius:4px;"
+            >
+            <div style="margin-top:8px; font-size:0.85rem; color:var(--muted);">
+              El precio se reducirá en este porcentaje
+            </div>
+          </div>
+
+          <button class="btn btn-primary" onclick="aplicarLotes()" id="btnAplicarLotes" disabled>
+            ✨ Aplicar cambios a todos los libros
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL Y TOAST (creados por ui.js) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div id="modalOverlay" class="modal-overlay"></div>
+<div id="toast" class="toast"></div>
+
+<!-- Scripts -->
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/inventario.js"></script>
+<script src="js/impresion.js"></script>
+
+
+</div>
+</body>
+</html>
