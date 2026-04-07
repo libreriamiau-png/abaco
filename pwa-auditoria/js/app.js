@@ -52,6 +52,7 @@ async function toggleCamera() {
     cameraActive = false;
     cameraSection.classList.add('hidden');
     startCamBtn.textContent = 'Abrir cámara';
+    snapBtn.disabled = true;
     return;
   }
 
@@ -60,6 +61,7 @@ async function toggleCamera() {
     cameraActive = true;
     cameraSection.classList.remove('hidden');
     startCamBtn.textContent = 'Cerrar cámara';
+    updatePhotoCount(); // habilita snapBtn si hay hueco para más fotos
     setStatus('Cámara activa', 'info');
   } catch (err) {
     setStatus('No se pudo acceder a la cámara: ' + err.message, 'error');
@@ -199,6 +201,7 @@ function resetForm() {
     cameraActive = false;
     cameraSection.classList.add('hidden');
     startCamBtn.textContent = 'Abrir cámara';
+    snapBtn.disabled = true; // requiere abrir cámara de nuevo
   }
 }
 
