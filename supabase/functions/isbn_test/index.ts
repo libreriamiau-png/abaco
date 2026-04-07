@@ -36,6 +36,26 @@ function extractYear(value: unknown) {
   return match ? match[1] : text
 }
 
+function buildPieEditorial(lugar: string, editorial: string, fecha: string) {
+  const hasLugar = !!lugar
+  const hasEditorial = !!editorial
+  const hasFecha = !!fecha
+
+  if (hasLugar && hasEditorial && hasFecha) return `${lugar}: ${editorial}, ${fecha}`
+  if (hasLugar && hasEditorial) return `${lugar}: ${editorial}`
+  if (hasEditorial && hasFecha) return `${editorial}, ${fecha}`
+  if (hasLugar && hasFecha) return `${lugar}, ${fecha}`
+  if (hasLugar) return lugar
+  if (hasEditorial) return editorial
+  if (hasFecha) return fecha
+  return ""
+}
+
+function buildPaginacion(paginas: unknown) {
+  const n = Number(paginas)
+  return Number.isFinite(n) && n > 0 ? `${n} pp.` : ""
+}
+
 Deno.serve(async (req) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -76,6 +96,8 @@ Deno.serve(async (req) => {
     const autorFuente = Array.isArray(book.authors) ? book.authors.map((a: any) => a.name).join("; ") : ""
     const editorial = Array.isArray(book.publishers) ? book.publishers.map((p: any) => p.name).join("; ") : ""
     const lugar = Array.isArray(book.publish_places) ? book.publish_places.map((p: any) => p.name).join("; ") : ""
+    const fecha = extractYear(book.publish_date)
+    const paginas = book.number_of_pages ?? null
 
     return new Response(JSON.stringify({
       found: true,
@@ -85,8 +107,10 @@ Deno.serve(async (req) => {
       autor: autorFuente ? autorFuente.split("; ").map(normalizeAuthorName).join("; ") : "",
       editorial,
       lugar,
-      fecha: extractYear(book.publish_date),
-      paginas: book.number_of_pages ?? null
+      fecha,
+      paginas,
+      pie_editorial: buildPieEditorial(lugar, editorial, fecha),
+      paginacion: buildPaginacion(paginas)
     }), { headers })
   } catch (err) {
     return new Response(JSON.stringify({
