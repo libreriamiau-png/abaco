@@ -71,31 +71,6 @@ function normalizeZoom(value, state) {
   return Number(stepped.toFixed(2));
 }
 
-export async function setCameraZoom(value) {
-  const track = getVideoTrack();
-  if (!track || typeof track.applyConstraints !== 'function') {
-    return { ...zoomState };
-  }
-
-  const state = await readZoomState();
-  if (!state.supported) return state;
-
-  const zoom = normalizeZoom(value, state);
-
-  await track.applyConstraints({
-    advanced: [{ zoom }],
-  });
-
-  const refreshed = await readZoomState();
-  zoomState.current = refreshed.current || zoom;
-
-  return { ...zoomState };
-}
-
-export async function getCameraZoomState() {
-  return await readZoomState();
-}
-
 // --- Stream ---
 
 export async function startCamera(videoEl) {
@@ -125,6 +100,32 @@ export async function startCamera(videoEl) {
 
   return { ...zoomState };
 }
+
+export async function setCameraZoom(value) {
+  const track = getVideoTrack();
+  if (!track || typeof track.applyConstraints !== 'function') {
+    return { ...zoomState };
+  }
+
+  const state = await readZoomState();
+  if (!state.supported) return state;
+
+  const zoom = normalizeZoom(value, state);
+
+  await track.applyConstraints({
+    advanced: [{ zoom }],
+  });
+
+  const refreshed = await readZoomState();
+  zoomState.current = refreshed.current || zoom;
+
+  return { ...zoomState };
+}
+
+export async function getCameraZoomState() {
+  return await readZoomState();
+}
+
 export function stopCamera() {
   if (!stream) return;
   stream.getTracks().forEach((t) => t.stop());
