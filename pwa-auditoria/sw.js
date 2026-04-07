@@ -2,7 +2,7 @@
 // SW.JS — Service Worker: cache-first shell, network-first API
 // =============================================================
 
-const CACHE_NAME = 'desiderio-auditoria-v1';
+const CACHE_NAME = 'desiderio-auditoria-v2';
 
 const SHELL_FILES = [
   './',
