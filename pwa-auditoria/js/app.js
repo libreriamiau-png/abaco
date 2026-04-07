@@ -3,7 +3,8 @@
 // =============================================================
 
 import { startCamera, stopCamera, capturePhoto, loadAndCompressFile,
-         removePhoto, getPhotos, clearPhotos, canAddMore } from './camera.js';
+         removePhoto, getPhotos, clearPhotos, canAddMore,
+         setCameraZoom, getCameraZoomState } from './camera.js';
 import { savePending, saveDraft, loadDraft, clearDraft, countPending } from './db.js';
 import { runSync, onSyncUpdate, registerNetworkListeners, startAutoSync } from './sync.js';
 
@@ -20,6 +21,11 @@ const pendingBadge = document.getElementById('pending-badge');
 const syncBtn     = document.getElementById('btn-sync');
 const cameraSection = document.getElementById('camera-section');
 const startCamBtn = document.getElementById('btn-start-camera');
+const zoomControls = document.getElementById('zoom-controls');
+const zoomRange    = document.getElementById('zoom-range');
+const zoomValue    = document.getElementById('zoom-value');
+const zoomBtn1x    = document.getElementById('btn-zoom-1x');
+const zoomBtn2x    = document.getElementById('btn-zoom-2x');
 
 // --- Estado ---
 let cameraActive = false;
@@ -38,6 +44,10 @@ async function init() {
   form.addEventListener('submit', onSubmit);
   form.addEventListener('input', debounceDraft());
   syncBtn.addEventListener('click', () => runSync());
+         
+zoomRange?.addEventListener('input', onZoomRangeInput);
+zoomBtn1x?.addEventListener('click', () => applyZoomValue(1));
+zoomBtn2x?.addEventListener('click', () => applyZoomValue(2));
 
   registerNetworkListeners();
   startAutoSync(10_000);
@@ -60,6 +70,53 @@ async function init() {
 
 // --- Cámara ---
 
+function formatZoom(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '1x';
+  return `${n.toFixed(1).replace('.0', '')}x`;
+}
+
+function hideZoomControls() {
+  if (!zoomControls) return;
+  zoomControls.classList.add('hidden');
+}
+
+function paintZoomControls(state) {
+  if (!zoomControls || !zoomRange || !zoomValue) return;
+
+  if (!state?.supported) {
+    hideZoomControls();
+    return;
+  }
+
+  zoomControls.classList.remove('hidden');
+  zoomRange.min = String(state.min);
+  zoomRange.max = String(state.max);
+  zoomRange.step = String(state.step || 0.1);
+  zoomRange.value = String(state.current);
+  zoomValue.textContent = formatZoom(state.current);
+}
+
+async function applyZoomValue(value) {
+  try {
+    const state = await setCameraZoom(value);
+
+    if (!state?.supported) {
+      hideZoomControls();
+      setStatus('Este móvil no expone zoom ajustable en el navegador', 'warn');
+      return;
+    }
+
+    paintZoomControls(state);
+  } catch (err) {
+    setStatus('No se pudo ajustar el zoom: ' + err.message, 'warn');
+  }
+}
+
+async function onZoomRangeInput(e) {
+  await applyZoomValue(parseFloat(e.target.value));
+}
+
 async function toggleCamera() {
   if (cameraActive) {
     stopCamera();
@@ -67,23 +124,38 @@ async function toggleCamera() {
     cameraSection.classList.add('hidden');
     startCamBtn.textContent = 'Abrir cámara';
     snapBtn.disabled = true;
+    hideZoomControls();
     return;
   }
 
   try {
-    await startCamera(video);
+    const zoomState = await startCamera(video);
     cameraActive = true;
     cameraSection.classList.remove('hidden');
     startCamBtn.textContent = 'Cerrar cámara';
-    updatePhotoCount(); // habilita snapBtn si hay hueco para más fotos
-    setStatus('Cámara activa', 'info');
-} catch (err) {
-  cameraActive = false;
-  cameraSection.classList.add('hidden');
-  startCamBtn.textContent = 'Abrir cámara';
-  snapBtn.disabled = true;
-  setStatus('No se pudo acceder a la cámara: ' + err.message, 'error');
-}
+    updatePhotoCount();
+
+    paintZoomControls(zoomState);
+
+    if (!zoomState?.supported) {
+      const refreshed = await getCameraZoomState();
+      paintZoomControls(refreshed);
+    }
+
+    setStatus(
+      zoomState?.supported
+        ? `Cámara activa · zoom ${formatZoom(zoomState.current)}`
+        : 'Cámara activa',
+      'info'
+    );
+  } catch (err) {
+    cameraActive = false;
+    cameraSection.classList.add('hidden');
+    startCamBtn.textContent = 'Abrir cámara';
+    snapBtn.disabled = true;
+    hideZoomControls();
+    setStatus('No se pudo acceder a la cámara: ' + err.message, 'error');
+  }
 }
 
 async function onSnap() {
@@ -214,12 +286,14 @@ function resetForm() {
   clearPhotos();
   photoGrid.innerHTML = '';
   updatePhotoCount();
+
   if (cameraActive) {
     stopCamera();
     cameraActive = false;
     cameraSection.classList.add('hidden');
     startCamBtn.textContent = 'Abrir cámara';
-    snapBtn.disabled = true; // requiere abrir cámara de nuevo
+    snapBtn.disabled = true;
+    hideZoomControls();
   }
 }
 
