@@ -3,7 +3,7 @@
 // =============================================================
 
 const DB_NAME = 'desiderio-auditoria';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_PENDING = 'pending_records';
 const STORE_DRAFT = 'draft';
 
