@@ -10,6 +10,92 @@ const MAX_PHOTOS = 3;
 let stream = null;
 const photos = []; // Array de { dataUrl, sizeKB }
 
+let zoomState = {
+  supported: false,
+  min: 1,
+  max: 1,
+  step: 0.1,
+  current: 1,
+};
+
+function resetZoomState() {
+  zoomState = {
+    supported: false,
+    min: 1,
+    max: 1,
+    step: 0.1,
+    current: 1,
+  };
+}
+
+function getVideoTrack() {
+  return stream?.getVideoTracks?.()[0] || null;
+}
+
+async function readZoomState() {
+  const track = getVideoTrack();
+  if (!track || typeof track.getCapabilities !== 'function') {
+    resetZoomState();
+    return { ...zoomState };
+  }
+
+  const caps = track.getCapabilities();
+  const zoomCaps = caps?.zoom;
+
+  if (!zoomCaps || typeof zoomCaps.min !== 'number' || typeof zoomCaps.max !== 'number') {
+    resetZoomState();
+    return { ...zoomState };
+  }
+
+  const settings = typeof track.getSettings === 'function' ? track.getSettings() : {};
+
+  zoomState = {
+    supported: true,
+    min: zoomCaps.min,
+    max: zoomCaps.max,
+    step: zoomCaps.step && zoomCaps.step > 0 ? zoomCaps.step : 0.1,
+    current: typeof settings.zoom === 'number' ? settings.zoom : Math.max(zoomCaps.min, 1),
+  };
+
+  return { ...zoomState };
+}
+
+function normalizeZoom(value, state) {
+  const raw = Number(value);
+  if (!Number.isFinite(raw)) return state.current;
+
+  const clamped = Math.min(state.max, Math.max(state.min, raw));
+  const stepped =
+    Math.round((clamped - state.min) / state.step) * state.step + state.min;
+
+  return Number(stepped.toFixed(2));
+}
+
+export async function setCameraZoom(value) {
+  const track = getVideoTrack();
+  if (!track || typeof track.applyConstraints !== 'function') {
+    return { ...zoomState };
+  }
+
+  const state = await readZoomState();
+  if (!state.supported) return state;
+
+  const zoom = normalizeZoom(value, state);
+
+  await track.applyConstraints({
+    advanced: [{ zoom }],
+  });
+
+  const refreshed = await readZoomState();
+  zoomState.current = refreshed.current || zoom;
+
+  return { ...zoomState };
+}
+
+export async function getCameraZoomState() {
+  return await readZoomState();
+}
+
 // --- Stream ---
 
 export async function startCamera(videoEl) {
@@ -26,12 +112,24 @@ export async function startCamera(videoEl) {
 
   videoEl.srcObject = stream;
   await videoEl.play();
-}
 
+  await readZoomState();
+
+  if (zoomState.supported) {
+    try {
+      await setCameraZoom(2);
+    } catch (err) {
+      console.warn('[camera] No se pudo aplicar zoom inicial x2:', err);
+    }
+  }
+
+  return { ...zoomState };
+}
 export function stopCamera() {
   if (!stream) return;
   stream.getTracks().forEach((t) => t.stop());
   stream = null;
+  resetZoomState();
 }
 
 // --- Captura y compresión ---
