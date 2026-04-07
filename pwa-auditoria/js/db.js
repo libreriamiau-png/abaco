@@ -1,4 +1,4 @@
-// =============================================================
+req.onupgradeneeded = (e) => {// =============================================================
 // DB.JS — IndexedDB wrapper para persistencia offline
 // =============================================================
 
@@ -15,22 +15,33 @@ function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
+req.onupgradeneeded = (e) => {
+  const db = e.target.result;
+  const tx = e.target.transaction;
 
-      if (!db.objectStoreNames.contains(STORE_PENDING)) {
-        const store = db.createObjectStore(STORE_PENDING, {
-          keyPath: 'localId',
-          autoIncrement: true,
-        });
-        store.createIndex('status', 'status', { unique: false });
-        store.createIndex('createdAt', 'createdAt', { unique: false });
-      }
+  let pendingStore;
 
-      if (!db.objectStoreNames.contains(STORE_DRAFT)) {
-        db.createObjectStore(STORE_DRAFT, { keyPath: 'id' });
-      }
-    };
+  if (!db.objectStoreNames.contains(STORE_PENDING)) {
+    pendingStore = db.createObjectStore(STORE_PENDING, {
+      keyPath: 'localId',
+      autoIncrement: true,
+    });
+  } else {
+    pendingStore = tx.objectStore(STORE_PENDING);
+  }
+
+  if (!pendingStore.indexNames.contains('status')) {
+    pendingStore.createIndex('status', 'status', { unique: false });
+  }
+
+  if (!pendingStore.indexNames.contains('createdAt')) {
+    pendingStore.createIndex('createdAt', 'createdAt', { unique: false });
+  }
+
+  if (!db.objectStoreNames.contains(STORE_DRAFT)) {
+    db.createObjectStore(STORE_DRAFT, { keyPath: 'id' });
+  }
+};
 
     req.onsuccess = (e) => {
       _db = e.target.result;
