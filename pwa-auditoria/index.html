@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="description" content="Captura móvil de libros para inventario Desiderio" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Auditoria" />
+
+  <title>Desiderio — Auditoría</title>
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./css/app.css" />
+
+  <!-- Apple touch icon fallback (hasta tener los PNGs reales) -->
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <h1>Desiderio · Auditoría</h1>
+    <div class="header-actions">
+      <div class="sync-wrapper">
+        <button id="btn-sync" class="btn btn-icon" title="Sincronizar ahora" aria-label="Sincronizar">
+          ⟳
+        </button>
+        <span id="pending-badge" hidden aria-label="Registros pendientes"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== STATUS BAR ===== -->
+  <div id="status-bar" class="status-bar status-info" hidden role="status" aria-live="polite"></div>
+
+  <!-- ===== SECCIÓN CÁMARA ===== -->
+  <div class="section">
+    <p class="section-title">Fotos del libro</p>
+
+    <button id="btn-start-camera" class="btn btn-secondary" type="button">
+      📷 Abrir cámara
+    </button>
+
+    <!-- Video stream (oculto hasta activar cámara) -->
+    <div id="camera-section" class="hidden mt-12">
+      <video id="camera-video" autoplay playsinline muted></video>
+    </div>
+
+    <!-- Controles de cámara / archivo -->
+    <div class="camera-controls mt-8">
+      <button id="btn-snap" class="btn btn-primary" type="button" disabled>
+        📸 Capturar
+      </button>
+      <label class="btn btn-secondary" style="cursor:pointer;">
+        🖼 Galería
+        <input id="file-input" type="file" accept="image/*" multiple hidden />
+      </label>
+    </div>
+
+    <!-- Contador y grid de miniaturas -->
+    <p class="photo-counter">Fotos: <span id="photo-count">0/3</span></p>
+    <div id="photo-grid"></div>
+  </div>
+
+  <!-- ===== FORMULARIO ===== -->
+  <form id="capture-form" class="section" novalidate>
+    <p class="section-title">Datos del libro</p>
+
+    <div class="form-group">
+      <label for="isbn">ISBN</label>
+      <input
+        id="isbn"
+        name="isbn"
+        type="text"
+        inputmode="numeric"
+        placeholder="9780000000000"
+        autocomplete="off"
+        maxlength="17"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="titulo">Título <span style="color:var(--color-danger)">*</span></label>
+      <input
+        id="titulo"
+        name="titulo"
+        type="text"
+        placeholder="Título del libro"
+        required
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="autor">Autor</label>
+      <input
+        id="autor"
+        name="autor"
+        type="text"
+        placeholder="Apellido, Nombre"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="precio">Precio (€)</label>
+      <input
+        id="precio"
+        name="precio"
+        type="number"
+        inputmode="decimal"
+        placeholder="0.00"
+        min="0"
+        step="0.01"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="estado">Estado</label>
+      <select id="estado" name="estado">
+        <option value="">— Seleccionar —</option>
+        <option value="nuevo">Nuevo</option>
+        <option value="muy_bueno">Muy bueno</option>
+        <option value="bueno">Bueno</option>
+        <option value="aceptable">Aceptable</option>
+        <option value="deteriorado">Deteriorado</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="notas">Notas</label>
+      <textarea id="notas" name="notas" placeholder="Observaciones…"></textarea>
+    </div>
+
+    <button id="btn-submit" class="btn btn-primary mt-8" type="submit">
+      Guardar registro
+    </button>
+  </form>
+
+  <!-- ===== SERVICE WORKER ===== -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then((reg) => {
+            console.log('[SW] Registrado, scope:', reg.scope);
+            // Escucha mensajes del SW (background sync)
+            navigator.serviceWorker.addEventListener('message', (e) => {
+              if (e.data?.type === 'bg-sync') {
+                // app.js maneja esto via onSyncUpdate
+                import('./js/sync.js').then(({ runSync }) => runSync());
+              }
+            });
+          })
+          .catch((err) => console.warn('[SW] Registro fallido:', err));
+      });
+    }
+  </script>
+
+  <!-- Módulo principal (ES modules) -->
+  <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>
