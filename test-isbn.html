@@ -9,15 +9,31 @@
   <h1>Test ISBN</h1>
 
   <label for="isbn">ISBN</label>
-  <input type="text" id="isbn" value="9781234567890">
+  <input type="text" id="isbn" value="9780140328721">
   <button id="buscarBtn">Probar función</button>
 
+  <h2>Resultado legible</h2>
+  <div><strong>Título:</strong> <span id="rTitulo">—</span></div>
+  <div><strong>Autor:</strong> <span id="rAutor">—</span></div>
+  <div><strong>Editorial:</strong> <span id="rEditorial">—</span></div>
+  <div><strong>Lugar:</strong> <span id="rLugar">—</span></div>
+  <div><strong>Fecha:</strong> <span id="rFecha">—</span></div>
+  <div><strong>Páginas:</strong> <span id="rPaginas">—</span></div>
+
+  <h2>JSON bruto</h2>
   <pre id="resultado">Sin ejecutar</pre>
 
   <script>
     document.getElementById('buscarBtn').addEventListener('click', async () => {
       const isbn = document.getElementById('isbn').value.trim()
       const resultado = document.getElementById('resultado')
+
+      document.getElementById('rTitulo').textContent = '—'
+      document.getElementById('rAutor').textContent = '—'
+      document.getElementById('rEditorial').textContent = '—'
+      document.getElementById('rLugar').textContent = '—'
+      document.getElementById('rFecha').textContent = '—'
+      document.getElementById('rPaginas').textContent = '—'
       resultado.textContent = 'Consultando...'
 
       try {
@@ -28,6 +44,14 @@
         })
 
         const data = await res.json()
+
+        document.getElementById('rTitulo').textContent = data.titulo || '—'
+        document.getElementById('rAutor').textContent = data.autor || '—'
+        document.getElementById('rEditorial').textContent = data.editorial || '—'
+        document.getElementById('rLugar').textContent = data.lugar || '—'
+        document.getElementById('rFecha').textContent = data.fecha || '—'
+        document.getElementById('rPaginas').textContent = data.paginas ?? '—'
+
         resultado.textContent = JSON.stringify(data, null, 2)
       } catch (err) {
         resultado.textContent = 'Error: ' + err.message
